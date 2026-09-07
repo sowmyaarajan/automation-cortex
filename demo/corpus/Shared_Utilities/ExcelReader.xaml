@@ -1,0 +1,8 @@
+<Activity xmlns="http://schemas.microsoft.com/netfx/2009/xaml/activities"
+          xmlns:ui="http://schemas.uipath.com/workflow/activities">
+  <Sequence DisplayName="Shared: Excel Reader">
+    <ui:ExcelApplicationScope WorkbookPath="[in_Path]" DisplayName="Open Workbook">
+      <ui:ReadRange SheetName="[in_SheetName]" DisplayName="Read Range" />
+    </ui:ExcelApplicationScope>
+  </Sequence>
+</Activity>

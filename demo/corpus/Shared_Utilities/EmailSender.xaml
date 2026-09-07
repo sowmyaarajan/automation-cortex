@@ -1,0 +1,6 @@
+<Activity xmlns="http://schemas.microsoft.com/netfx/2009/xaml/activities"
+          xmlns:ui="http://schemas.uipath.com/workflow/activities">
+  <Sequence DisplayName="Shared: Email Sender">
+    <ui:SendOutlookMail Subject="[in_Subject]" To="[in_To]" Body="[in_Body]" DisplayName="Send Email" />
+  </Sequence>
+</Activity>

@@ -1,0 +1,6 @@
+<Activity xmlns="http://schemas.microsoft.com/netfx/2009/xaml/activities"
+          xmlns:ui="http://schemas.uipath.com/workflow/activities">
+  <Sequence DisplayName="Notify AP Team">
+    <ui:SendOutlookMail Subject="Invoice Posted" To="ap-team@contoso.com" Body="Invoice for vendor [in_VendorId] posted successfully." DisplayName="Send Confirmation Email" />
+  </Sequence>
+</Activity>

@@ -1,0 +1,15 @@
+{
+  "name": "Excel_MonthlyReconciliation",
+  "description": "Reads monthly SAP GL export and reconciles against an Excel budget sheet. Emails discrepancies to controllers.",
+  "main": "Main.xaml",
+  "dependencies": {
+    "UiPath.System.Activities": "[22.10.4]",
+    "UiPath.Excel.Activities": "[2.19.4]",
+    "UiPath.Mail.Activities": "[1.19.2]"
+  },
+  "projectVersion": "2.3.0",
+  "runtimeOptions": {"autoDispose": false, "isPausable": false},
+  "designOptions": {"projectProfile": "Development", "outputType": "Process"},
+  "modernBehavior": true,
+  "expressionLanguage": "VisualBasic"
+}

@@ -1,0 +1,18 @@
+{
+  "name": "SAP_InvoicePosting",
+  "description": "Reads invoice data from Orchestrator queue and posts to SAP FB60. Handles duplicate vendor detection.",
+  "main": "Main.xaml",
+  "dependencies": {
+    "UiPath.System.Activities": "[22.10.4]",
+    "UiPath.UIAutomation.Activities": "[22.10.7]",
+    "UiPath.Excel.Activities": "[2.19.4]",
+    "UiPath.Mail.Activities": "[1.19.2]"
+  },
+  "projectVersion": "1.0.4",
+  "runtimeOptions": {"autoDispose": false, "isPausable": true},
+  "designOptions": {"projectProfile": "Development", "outputType": "Process"},
+  "webServices": [],
+  "entitiesStores": [],
+  "modernBehavior": true,
+  "expressionLanguage": "VisualBasic"
+}

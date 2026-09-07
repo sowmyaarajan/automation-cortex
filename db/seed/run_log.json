@@ -1,0 +1,12 @@
+{
+  "generated_at": "2026-07-08T09:00:00Z",
+  "window_days": 30,
+  "runs": [
+    {"automation": "SAP_InvoicePosting::Main.xaml", "total": 412, "failed": 47, "selector_change_events": 8},
+    {"automation": "SAP_VendorMaster::Main.xaml",   "total": 89,  "failed": 6,  "selector_change_events": 3},
+    {"automation": "Email_InvoiceIntake::Main.xaml","total": 634, "failed": 22, "selector_change_events": 0},
+    {"automation": "Excel_MonthlyReconciliation::Main.xaml","total": 4,   "failed": 1,  "selector_change_events": 0},
+    {"automation": "HR_OnboardingOrchestrator::Main.xaml","total": 27,  "failed": 5,  "selector_change_events": 4},
+    {"automation": "Shared_Utilities::SAPLogin.xaml","total": 501, "failed": 12, "selector_change_events": 2}
+  ]
+}

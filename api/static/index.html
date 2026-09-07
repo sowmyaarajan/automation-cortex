@@ -1,0 +1,1745 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Automation Cortex</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/cytoscape@3.28.1/dist/cytoscape.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      fontFamily: {
+        sans: ['Geist', 'system-ui', 'sans-serif'],
+        mono: ['"Geist Mono"', 'ui-monospace', 'monospace'],
+      },
+      colors: {
+        ink: { 900:'#111113', 700:'#37373c', 500:'#6f6f78', 400:'#8b8b94', 300:'#b4b4bc' },
+        line: '#e7e7ea',
+        paper: '#fafafa',
+        accent: { DEFAULT:'#5b5bd6', soft:'#eeeefc', dark:'#4747b8' },
+        graph: { bg:'#1c1c22', panel:'#242430', line:'#2a2a32' },
+      },
+    }
+  }
+}
+</script>
+<style>
+  [x-cloak]{display:none!important}
+  html{font-feature-settings:"cv11","ss01";}
+  body{background:#fafafa;color:#111113;}
+  ::selection{background:#5b5bd6;color:#fff}
+  .focus-ring:focus-visible{outline:2px solid #5b5bd6;outline-offset:2px;border-radius:6px}
+  input:focus-visible,button:focus-visible,textarea:focus-visible,[tabindex]:focus-visible{outline:2px solid #5b5bd6;outline-offset:2px}
+  /* thin scrollbars */
+  .thin-scroll::-webkit-scrollbar{width:6px;height:6px}
+  .thin-scroll::-webkit-scrollbar-thumb{background:#d4d4d8;border-radius:3px}
+  .dark-scroll::-webkit-scrollbar{width:6px}
+  .dark-scroll::-webkit-scrollbar-thumb{background:#33333c;border-radius:3px}
+  /* markdown doc */
+  .doc{font-size:14.5px;line-height:1.7;color:#37373c}
+  .doc h1{font-size:22px;font-weight:650;color:#111113;margin:0 0 14px;letter-spacing:-0.01em}
+  .doc h2{font-size:15px;font-weight:600;color:#111113;margin:28px 0 10px;padding-top:18px;border-top:1px solid #ececef}
+  .doc h3{font-size:13.5px;font-weight:600;color:#111113;margin:20px 0 8px}
+  .doc p{margin:0 0 12px}
+  .doc strong{color:#111113;font-weight:600}
+  .doc code{font-family:"Geist Mono",monospace;font-size:12.5px;background:#f1f1f4;border:1px solid #e7e7ea;padding:1px 5px;border-radius:4px;color:#37373c}
+  .doc pre{background:#f6f6f8;border:1px solid #e7e7ea;border-radius:8px;padding:14px;overflow-x:auto;margin:0 0 14px}
+  .doc pre code{background:none;border:none;padding:0}
+  .doc ul,.doc ol{margin:0 0 12px;padding-left:22px}
+  .doc li{margin:4px 0}
+  .doc ol li::marker{font-family:"Geist Mono",monospace;font-size:12px;color:#8b8b94}
+  .doc blockquote{border-left:2px solid #5b5bd6;margin:0 0 14px;padding:6px 0 6px 14px;color:#6f6f78;font-style:normal}
+  .doc table{border-collapse:collapse;width:100%;margin:0 0 14px;font-size:13px}
+  .doc th{text-align:left;font-weight:600;border-bottom:1px solid #d4d4d8;padding:6px 10px 6px 0}
+  .doc td{border-bottom:1px solid #ececef;padding:6px 10px 6px 0}
+  .doc hr{border:none;border-top:1px solid #ececef;margin:22px 0}
+</style>
+</head>
+<body class="font-sans antialiased" x-data="app()" x-init="init()" @keydown.escape.window="uploadOpen=false">
+
+<!-- ══════════════════ HEADER ══════════════════ -->
+<header class="border-b border-line bg-white">
+  <div class="max-w-[1400px] mx-auto px-8 h-[60px] flex items-center gap-8">
+    <div class="flex items-center gap-3">
+      <!-- mark -->
+      <div class="w-[26px] h-[26px] rounded-[7px] bg-ink-900 grid place-items-center">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+          <circle cx="7" cy="7" r="2" fill="#fff"/>
+          <circle cx="2" cy="2.5" r="1.3" fill="#fff" opacity=".55"/>
+          <circle cx="12" cy="3" r="1.3" fill="#fff" opacity=".55"/>
+          <circle cx="11.5" cy="11.5" r="1.3" fill="#fff" opacity=".55"/>
+          <circle cx="2.5" cy="11" r="1.3" fill="#fff" opacity=".55"/>
+          <path d="M7 7L2 2.5M7 7l5-4M7 7l4.5 4.5M7 7l-4.5 4" stroke="#fff" stroke-width=".7" opacity=".4"/>
+        </svg>
+      </div>
+      <div class="flex items-baseline gap-2">
+        <span class="text-[15px] font-semibold tracking-tight">Automation Cortex</span>
+        <span class="text-[11px] font-mono text-ink-500 uppercase tracking-wider">estate intelligence</span>
+      </div>
+    </div>
+
+    <!-- estate vitals -->
+    <div class="ml-auto flex items-center gap-6" x-show="analytics" x-cloak>
+      <div class="flex items-center gap-6 text-[13px]">
+        <div class="flex items-baseline gap-1.5">
+          <span class="font-mono font-semibold text-[15px]" x-text="analytics?.automations_indexed"></span>
+          <span class="text-ink-500">bots</span>
+        </div>
+        <div class="w-px h-4 bg-line"></div>
+        <div class="flex items-baseline gap-1.5">
+          <span class="font-mono font-semibold text-[15px]" x-text="analytics?.dedupe_candidate_pairs"></span>
+          <span class="text-ink-500">duplicate pairs</span>
+        </div>
+        <div class="w-px h-4 bg-line"></div>
+        <div class="flex items-center gap-2">
+          <span class="text-ink-500">avg fragility</span>
+          <span class="font-mono font-semibold text-[15px]" x-text="fmt1(analytics?.average_fragility)"></span>
+          <div class="w-14 h-[3px] rounded-full bg-line overflow-hidden">
+            <div class="h-full rounded-full" :class="riskBg(analytics?.average_fragility)" :style="`width:${Math.min(100,(analytics?.average_fragility||0)*2)}%`"></div>
+          </div>
+        </div>
+      </div>
+      <button @click="uploadOpen=true" class="h-8 px-3.5 rounded-lg bg-ink-900 text-white text-[13px] font-medium hover:bg-ink-700 transition-colors flex items-center gap-1.5">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6 1v10M1 6h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        Add project
+      </button>
+    </div>
+  </div>
+
+  <!-- ══ TAB NAV ══ -->
+  <nav class="max-w-[1400px] mx-auto px-8 flex gap-1 -mb-px" role="tablist">
+    <template x-for="t in tabs" :key="t.id">
+      <button role="tab" :aria-selected="tab===t.id" @click="setTab(t.id)"
+        class="relative h-10 px-3.5 text-[13px] font-medium transition-colors border-b-2 -mb-px focus-ring"
+        :class="tab===t.id ? 'text-ink-900 border-ink-900' : 'text-ink-500 border-transparent hover:text-ink-700'">
+        <span class="flex items-center gap-1.5">
+          <span x-html="t.icon"></span>
+          <span x-text="t.label"></span>
+          <span x-show="t.soon" class="text-[9px] font-mono uppercase tracking-wider text-accent bg-accent-soft px-1.5 py-0.5 rounded">soon</span>
+        </span>
+      </button>
+    </template>
+  </nav>
+</header>
+
+<!-- ══════════════════ EXECUTIVE OVERVIEW (landing) ══════════════════ -->
+<main x-show="tab==='overview'" x-cloak data-screen-label="Overview" class="max-w-[1400px] mx-auto px-8 py-8">
+  <div class="grid grid-cols-[1.25fr_.75fr] gap-6 mb-6">
+    <section class="bg-white border border-line rounded-xl p-6">
+      <div class="flex items-start justify-between gap-6 mb-7">
+        <div>
+          <div class="inline-flex items-center gap-2 text-[11px] font-mono uppercase tracking-widest text-ink-500 mb-3">
+            <span class="w-1 h-1 rounded-full bg-accent"></span> executive overview
+          </div>
+          <h1 class="text-[30px] font-semibold tracking-tight leading-tight">Automation estate health</h1>
+          <p class="text-[14.5px] text-ink-500 mt-2 max-w-[560px] leading-relaxed">A boardroom-safe summary of risk, reuse, and operational exposure across the indexed UiPath estate.</p>
+        </div>
+        <button @click="startDemo()" class="h-9 px-4 rounded-lg bg-ink-900 text-white text-[13px] font-medium hover:bg-ink-700 transition-colors flex items-center gap-2">
+          <span x-html="svgIconLocal('play')"></span>
+          Run demo
+        </button>
+      </div>
+
+      <div class="grid grid-cols-4 gap-px bg-line border border-line rounded-xl overflow-hidden">
+        <div class="bg-paper px-5 py-5">
+          <div class="text-[10.5px] font-mono uppercase tracking-widest text-ink-500 mb-2">Indexed bots</div>
+          <div class="text-[30px] font-semibold tracking-tight leading-none" x-text="analytics?.automations_indexed ?? bots.length"></div>
+          <div class="text-[12px] text-ink-500 mt-2">ready for analysis</div>
+        </div>
+        <div class="bg-paper px-5 py-5">
+          <div class="text-[10.5px] font-mono uppercase tracking-widest text-ink-500 mb-2">Health score</div>
+          <div class="flex items-baseline gap-2">
+            <span class="text-[30px] font-semibold tracking-tight leading-none" :class="riskText(100-estateHealth.score)" x-text="fmt1(estateHealth.score)"></span>
+            <span class="text-[12px] text-ink-500">/ 100</span>
+          </div>
+          <div class="h-[4px] rounded-full bg-line overflow-hidden mt-3">
+            <div class="h-full rounded-full" :class="riskBg(100-estateHealth.score)" :style="`width:${estateHealth.score}%`"></div>
+          </div>
+        </div>
+        <div class="bg-paper px-5 py-5">
+          <div class="text-[10.5px] font-mono uppercase tracking-widest text-ink-500 mb-2">Maintenance saved</div>
+          <div class="text-[30px] font-semibold tracking-tight leading-none" x-text="estateHealth.savedDays"></div>
+          <div class="text-[12px] text-ink-500 mt-2">dev-days from reuse</div>
+        </div>
+        <div class="bg-paper px-5 py-5">
+          <div class="text-[10.5px] font-mono uppercase tracking-widest text-ink-500 mb-2">Highest exposure</div>
+          <div class="text-[16px] font-mono font-medium truncate mt-2" x-text="topRiskApp?.name || 'None'"></div>
+          <div class="text-[12px] text-ink-500 mt-2" x-text="topRiskApp ? topRiskApp.count + ' dependent bots' : 'No apps indexed'"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="bg-ink-900 text-white rounded-xl p-6 overflow-hidden relative">
+      <div class="text-[10.5px] font-mono uppercase tracking-widest text-white/55 mb-3">demo story mode</div>
+      <h2 class="text-[22px] font-semibold tracking-tight mb-2">A quick guide to Automation Cortex.</h2>
+      <p class="text-[13.5px] text-white/60 leading-relaxed mb-5">Walk through estate health, the riskiest bot, application blast radius, reuse opportunities, and the advisor's pushback.</p>
+      <div class="space-y-2.5">
+        <template x-for="(s,i) in demoSteps" :key="s.id">
+          <button @click="goDemoStep(i)" class="w-full flex items-center gap-3 text-left rounded-lg px-3 py-2 transition-colors"
+            :class="demoActive && demoStep===i ? 'bg-white text-ink-900' : 'bg-white/[0.05] text-white/70 hover:bg-white/[0.09]'">
+            <span class="w-5 h-5 rounded-full grid place-items-center text-[11px] font-mono"
+              :class="demoActive && demoStep===i ? 'bg-ink-900 text-white' : 'bg-white/[0.08] text-white/55'"
+              x-text="i+1"></span>
+            <span class="min-w-0">
+              <span class="block text-[13px] font-medium truncate" x-text="s.title"></span>
+              <span class="block text-[11.5px] opacity-70 truncate" x-text="s.caption"></span>
+            </span>
+          </button>
+        </template>
+      </div>
+    </section>
+  </div>
+
+  <div class="grid grid-cols-[.95fr_1.05fr] gap-6">
+    <section class="bg-white border border-line rounded-xl p-6">
+      <div class="flex items-center justify-between mb-5">
+        <div>
+          <div class="text-[10.5px] font-mono uppercase tracking-widest text-ink-500 mb-1">recommended actions</div>
+          <h2 class="text-[18px] font-semibold tracking-tight">What Cortex would do next</h2>
+        </div>
+        <span class="text-[11px] font-mono text-ink-500" x-text="recommendedActions.length + ' actions'"></span>
+      </div>
+      <div class="space-y-3">
+        <template x-for="a in recommendedActions" :key="a.title">
+          <button @click="runAction(a)" class="w-full text-left border border-line rounded-lg px-4 py-3 hover:border-ink-300 hover:bg-paper transition-colors">
+            <div class="flex items-start justify-between gap-4">
+              <div class="min-w-0">
+                <div class="flex items-center gap-2 mb-1">
+                  <span class="w-2 h-2 rounded-full" :class="a.severity==='high'?'bg-red-500':a.severity==='medium'?'bg-orange-400':'bg-emerald-500'"></span>
+                  <span class="text-[13.5px] font-medium" x-text="a.title"></span>
+                </div>
+                <p class="text-[12.5px] text-ink-500 leading-relaxed" x-text="a.detail"></p>
+              </div>
+              <span class="shrink-0 text-[10.5px] font-mono uppercase tracking-wider px-2 py-1 rounded bg-paper border border-line text-ink-500" x-text="a.type"></span>
+            </div>
+          </button>
+        </template>
+      </div>
+    </section>
+
+    <section class="bg-white border border-line rounded-xl p-6">
+      <div class="text-[10.5px] font-mono uppercase tracking-widest text-ink-500 mb-1">risk by application</div>
+      <h2 class="text-[18px] font-semibold tracking-tight mb-5">Where change hurts most</h2>
+      <div class="space-y-3">
+        <template x-for="a in appRisk" :key="a.name">
+          <button @click="tab='impact';$nextTick(()=>{initGraph();selectApp(a.name)})" class="w-full grid grid-cols-[120px_1fr_44px] gap-4 items-center text-left">
+            <span class="text-[13px] font-mono font-medium truncate" x-text="a.name"></span>
+            <span class="h-[7px] rounded-full bg-line overflow-hidden">
+              <span class="block h-full rounded-full" :class="riskBg(a.avgFragility)" :style="`width:${Math.min(100,a.avgFragility*2.2)}%`"></span>
+            </span>
+            <span class="text-[12px] font-mono text-ink-500 text-right" x-text="fmt1(a.avgFragility)"></span>
+          </button>
+        </template>
+      </div>
+    </section>
+  </div>
+</main>
+
+<!-- DEMO STORY BAR -->
+<div x-show="demoActive" x-cloak class="fixed bottom-5 left-1/2 -translate-x-1/2 z-40 w-[720px] max-w-[calc(100vw-32px)] rounded-xl bg-ink-900 text-white shadow-2xl border border-white/10">
+  <div class="flex items-center gap-4 px-4 py-3">
+    <div class="w-8 h-8 rounded-lg bg-white/10 grid place-items-center text-[12px] font-mono" x-text="demoStep+1"></div>
+    <div class="min-w-0 flex-1">
+      <div class="text-[13.5px] font-medium truncate" x-text="demoSteps[demoStep]?.title"></div>
+      <div class="text-[12px] text-white/60 truncate" x-text="demoSteps[demoStep]?.caption"></div>
+    </div>
+    <button @click="prevDemoStep()" class="h-8 px-3 rounded-lg bg-white/[0.06] text-[12.5px] text-white/70 hover:bg-white/[0.1]">Back</button>
+    <button @click="nextDemoStep()" class="h-8 px-3 rounded-lg bg-white text-ink-900 text-[12.5px] font-medium hover:bg-white/90" x-text="demoStep===demoSteps.length-1?'Finish':'Next'"></button>
+  </div>
+</div>
+
+<!-- ══════════════════ ADVISOR ══════════════════ -->
+<main x-show="tab==='advisor'" x-cloak data-screen-label="Advisor" class="max-w-[1400px] mx-auto px-8 flex flex-col justify-center" style="min-height: calc(100vh - 101px);">
+  <div class="w-full max-w-[780px] mx-auto py-12" :class="verdict && 'self-start'">
+    <div class="text-center mb-9">
+      <!-- brand wordmark -->
+      <div class="flex items-center justify-center gap-3 mb-6">
+        <div class="w-9 h-9 rounded-[10px] bg-ink-900 grid place-items-center">
+          <svg width="18" height="18" viewBox="0 0 14 14" fill="none">
+            <circle cx="7" cy="7" r="2" fill="#fff"/>
+            <circle cx="2" cy="2.5" r="1.3" fill="#fff" opacity=".55"/>
+            <circle cx="12" cy="3" r="1.3" fill="#fff" opacity=".55"/>
+            <circle cx="11.5" cy="11.5" r="1.3" fill="#fff" opacity=".55"/>
+            <circle cx="2.5" cy="11" r="1.3" fill="#fff" opacity=".55"/>
+            <path d="M7 7L2 2.5M7 7l5-4M7 7l4.5 4.5M7 7l-4.5 4" stroke="#fff" stroke-width=".7" opacity=".4"/>
+          </svg>
+        </div>
+        <span class="text-[26px] font-semibold tracking-tight leading-none">Automation <span class="text-accent">Cortex</span></span>
+      </div>
+      <div class="inline-flex items-center gap-2 text-[11px] font-mono uppercase tracking-widest text-ink-500 mb-4">
+        <span class="w-1 h-1 rounded-full bg-accent"></span> adversarial review
+      </div>
+      <h1 class="text-[38px] font-semibold tracking-tight leading-[1.05]">The estate argues back.</h1>
+      <p class="text-[15.5px] text-ink-500 mt-3 max-w-[520px] mx-auto leading-relaxed">Describe the bot you want to build. Cortex checks it against everything you already run — before a single activity is written.</p>
+    </div>
+
+    <!-- input -->
+    <div class="bg-white border border-line rounded-xl p-1.5 shadow-[0_1px_2px_rgba(0,0,0,0.04)] focus-within:border-ink-300 transition-colors">
+      <textarea x-model="spec" rows="2" placeholder="I want to build a bot that…"
+        @keydown.enter.meta="ask()" @keydown.enter.ctrl="ask()"
+        class="w-full resize-none px-3.5 py-2.5 text-[15px] bg-transparent placeholder:text-ink-500 focus:outline-none"></textarea>
+      <div class="flex items-center justify-between px-2 pb-1">
+        <span class="text-[11px] font-mono text-ink-500">⌘↵ to submit</span>
+        <button @click="ask()" :disabled="!spec.trim()||asking"
+          class="h-8 px-4 rounded-lg bg-ink-900 text-white text-[13px] font-medium disabled:opacity-40 hover:bg-ink-700 transition-colors">
+          <span x-show="!asking">Challenge it</span>
+          <span x-show="asking" x-cloak class="flex items-center gap-2"><span class="w-3 h-3 border-[1.5px] border-white/30 border-t-white rounded-full animate-spin"></span>Consulting estate…</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- suggestions -->
+    <div class="flex flex-wrap justify-center gap-2 mt-4" x-show="!verdict">
+      <template x-for="s in suggestions">
+        <button @click="spec=s;ask()" class="px-3 h-7 rounded-full border border-line bg-white text-[12.5px] text-ink-500 hover:text-ink-900 hover:border-ink-300 transition-colors" x-text="s"></button>
+      </template>
+    </div>
+
+    <!-- verdict -->
+    <div x-show="verdict" x-cloak class="mt-10 space-y-4">
+      <!-- adversarial paragraph -->
+      <div class="bg-white border border-line rounded-xl overflow-hidden">
+        <div class="border-l-[3px] border-accent px-6 py-5">
+          <div class="flex items-center gap-2 mb-2.5">
+            <span class="text-[11px] font-mono uppercase tracking-widest text-accent">the pushback</span>
+            <span class="text-[11px] font-mono px-2 py-0.5 rounded-full bg-ink-900 text-white" x-text="verdict?.modality"></span>
+          </div>
+          <p class="text-[15px] leading-relaxed text-ink-700" x-text="verdict?.adversarial_paragraph"></p>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-4">
+        <!-- similar bots -->
+        <div class="bg-white border border-line rounded-xl p-5">
+          <h3 class="text-[11px] font-mono uppercase tracking-widest text-ink-500 mb-4">Already in the estate</h3>
+          <div class="space-y-3">
+            <template x-for="s in verdict?.similar_automations||[]">
+              <div>
+                <div class="flex items-baseline justify-between mb-1">
+                  <button class="text-[13px] font-mono font-medium hover:text-accent transition-colors" @click="openBotFromAdvisor(s)" x-text="s.project_name"></button>
+                  <span class="text-[12px] font-mono text-ink-500" x-text="Math.round(s.score*100)+'%'"></span>
+                </div>
+                <div class="h-[3px] rounded-full bg-line overflow-hidden">
+                  <div class="h-full rounded-full bg-accent" :style="`width:${s.score*100}%`"></div>
+                </div>
+              </div>
+            </template>
+            <p x-show="!(verdict?.similar_automations||[]).length" class="text-[13px] text-ink-500">No overlap found — genuinely new ground.</p>
+          </div>
+        </div>
+
+        <!-- effort + reuse -->
+        <div class="bg-white border border-line rounded-xl p-5 flex flex-col gap-5">
+          <div>
+            <h3 class="text-[11px] font-mono uppercase tracking-widest text-ink-500 mb-2">Effort if you build anyway</h3>
+            <div class="flex items-baseline gap-2">
+              <span class="text-[26px] font-semibold tracking-tight" x-text="verdict?.effort_estimate?.split(' ')[0]"></span>
+              <span class="text-[13px] text-ink-500" x-text="(verdict?.effort_estimate||'').split(' ').slice(1).join(' ')"></span>
+            </div>
+          </div>
+          <div>
+            <h3 class="text-[11px] font-mono uppercase tracking-widest text-ink-500 mb-2.5">Reusable today</h3>
+            <div class="flex flex-wrap gap-1.5">
+              <template x-for="c in verdict?.reusable_components||[]">
+                <span class="px-2 py-1 rounded-md bg-accent-soft text-accent-dark text-[12px] font-mono" x-text="c"></span>
+              </template>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- reasons not to build -->
+      <div class="bg-white border border-line rounded-xl p-5" x-show="(verdict?.reasons_not_to_build||[]).length">
+        <h3 class="text-[11px] font-mono uppercase tracking-widest text-ink-500 mb-3">Reasons not to build</h3>
+        <ol class="space-y-2">
+          <template x-for="(r,i) in verdict?.reasons_not_to_build||[]">
+            <li class="flex gap-3 text-[13.5px] text-ink-700">
+              <span class="font-mono text-[12px] text-ink-500 pt-0.5" x-text="String(i+1).padStart(2,'0')"></span>
+              <span x-text="r"></span>
+            </li>
+          </template>
+        </ol>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- ══════════════════ GENOME ══════════════════ -->
+<main x-show="tab==='genome'" x-cloak data-screen-label="Genome" class="max-w-[1400px] mx-auto px-8 py-8">
+
+  <!-- estate strip -->
+  <div class="grid grid-cols-4 gap-px bg-line border border-line rounded-xl overflow-hidden mb-6">
+    <div class="bg-white px-6 py-5">
+      <div class="text-[11px] font-mono uppercase tracking-widest text-ink-500 mb-1">Indexed</div>
+      <div class="text-[28px] font-semibold tracking-tight leading-none" x-text="bots.length"></div>
+      <div class="text-[12px] text-ink-500 mt-1.5">automations</div>
+    </div>
+    <div class="bg-white px-6 py-5">
+      <div class="text-[11px] font-mono uppercase tracking-widest text-ink-500 mb-1">Risk spread</div>
+      <div class="flex items-end gap-[3px] h-[34px] mt-1">
+        <template x-for="b in [...bots].sort((a,c)=>c.fragility_score-a.fragility_score)">
+          <div class="w-[14px] rounded-sm" :class="riskBg(b.fragility_score)" :style="`height:${Math.max(12,b.fragility_score*2.4)}%`" :title="b.project_name"></div>
+        </template>
+      </div>
+      <div class="text-[12px] text-ink-500 mt-1.5">fragility per bot, sorted</div>
+    </div>
+    <div class="bg-white px-6 py-5">
+      <div class="text-[11px] font-mono uppercase tracking-widest text-ink-500 mb-1">Duplication</div>
+      <div class="text-[28px] font-semibold tracking-tight leading-none" x-text="analytics?.dedupe_candidate_pairs ?? '—'"></div>
+      <div class="text-[12px] text-ink-500 mt-1.5">candidate pairs to merge</div>
+    </div>
+    <div class="bg-white px-6 py-5">
+      <div class="text-[11px] font-mono uppercase tracking-widest text-ink-500 mb-1">Most fragile</div>
+      <div class="text-[15px] font-mono font-medium mt-1 truncate" x-text="mostFragile?.project_name||'—'"></div>
+      <div class="flex items-center gap-2 mt-2">
+        <span class="w-2 h-2 rounded-full" :class="riskBg(mostFragile?.fragility_score)"></span>
+        <span class="text-[12px] font-mono text-ink-500" x-text="'score '+fmt1(mostFragile?.fragility_score)"></span>
+      </div>
+    </div>
+  </div>
+
+  <div class="flex gap-6">
+    <!-- table -->
+    <div class="flex-1 bg-white border border-line rounded-xl overflow-hidden">
+      <div class="grid grid-cols-[minmax(220px,1.4fr)_80px_minmax(140px,1fr)_minmax(160px,1fr)_70px_70px] gap-4 px-5 h-9 items-center border-b border-line text-[10.5px] font-mono uppercase tracking-widest text-ink-500">
+        <span>Automation</span><span>Fragility</span><span></span><span>Applications</span><span class="text-right">Activities</span><span class="text-right">HITL</span>
+      </div>
+      <template x-for="b in botsSorted" :key="b.id">
+        <button @click="selectBot(b.id)"
+          class="w-full grid grid-cols-[minmax(220px,1.4fr)_80px_minmax(140px,1fr)_minmax(160px,1fr)_70px_70px] gap-4 px-5 py-3 items-center text-left border-b border-line/60 last:border-0 transition-colors hover:bg-paper focus-ring"
+          :class="selectedBot?.id===b.id && 'bg-accent-soft/50 hover:bg-accent-soft/50'">
+          <div class="min-w-0">
+            <div class="flex items-center gap-2">
+              <span class="w-[7px] h-[7px] rounded-full shrink-0" :class="riskBg(b.fragility_score)"></span>
+              <span class="text-[13px] font-mono font-medium truncate" x-text="b.project_name"></span>
+            </div>
+            <div class="text-[12px] text-ink-500 truncate mt-0.5 pl-[15px]" x-text="b.intent"></div>
+          </div>
+          <span class="text-[13px] font-mono font-semibold" :class="riskText(b.fragility_score)" x-text="fmt1(b.fragility_score)"></span>
+          <div class="h-[4px] rounded-full bg-line overflow-hidden">
+            <div class="h-full rounded-full" :class="riskBg(b.fragility_score)" :style="`width:${Math.min(100,b.fragility_score*2)}%`"></div>
+          </div>
+          <div class="flex flex-wrap gap-1">
+            <template x-for="a in b.applications||[]">
+              <span class="px-1.5 py-0.5 rounded bg-paper border border-line text-[11px] font-mono text-ink-500" x-text="a"></span>
+            </template>
+          </div>
+          <span class="text-[13px] font-mono text-ink-500 text-right" x-text="b.activity_count"></span>
+          <span class="text-[13px] font-mono text-right" :class="b.hitl_nodes>0?'text-ink-700':'text-ink-300'" x-text="b.hitl_nodes>0?b.hitl_nodes+' ✓':'—'"></span>
+        </button>
+      </template>
+    </div>
+
+    <!-- detail drawer -->
+    <aside x-show="selectedBot" x-cloak class="w-[360px] shrink-0">
+      <div class="bg-white border border-line rounded-xl p-5 sticky top-6">
+        <div class="flex items-start justify-between gap-3 mb-1">
+          <h2 class="text-[15px] font-mono font-semibold break-all" x-text="selectedBot?.project_name"></h2>
+          <button @click="selectedBot=null" aria-label="Close details" class="text-ink-500 hover:text-ink-900 text-[18px] leading-none focus-ring">×</button>
+        </div>
+        <p class="text-[13px] text-ink-500 leading-relaxed mb-5" x-text="selectedBot?.intent"></p>
+
+        <div class="flex items-center gap-3 mb-5 pb-5 border-b border-line">
+          <div class="w-[52px] h-[52px] rounded-xl grid place-items-center border" :class="riskSoftBg(selectedBot?.fragility_score)">
+            <span class="text-[18px] font-mono font-bold" :class="riskText(selectedBot?.fragility_score)" x-text="fmt1(selectedBot?.fragility_score)"></span>
+          </div>
+          <div>
+            <div class="text-[13px] font-medium" x-text="riskLabel(selectedBot?.fragility_score)"></div>
+            <div class="text-[12px] text-ink-500">composite fragility</div>
+          </div>
+        </div>
+
+        <h3 class="text-[10.5px] font-mono uppercase tracking-widest text-ink-500 mb-3">Fragility anatomy</h3>
+        <div class="space-y-2.5 mb-5 pb-5 border-b border-line">
+          <template x-for="d in fragDims(selectedBot)">
+            <div class="grid grid-cols-[130px_1fr_34px] gap-2 items-center">
+              <span class="text-[12px] text-ink-500" x-text="d.label"></span>
+              <div class="h-[4px] rounded-full bg-line overflow-hidden">
+                <div class="h-full rounded-full" :class="d.v>=60?'bg-red-500':d.v>=35?'bg-orange-400':'bg-ink-300'" :style="`width:${d.v}%`"></div>
+              </div>
+              <span class="text-[11.5px] font-mono text-ink-500 text-right" x-text="d.v"></span>
+            </div>
+          </template>
+        </div>
+
+        <h3 class="text-[10.5px] font-mono uppercase tracking-widest text-ink-500 mb-3">Recommended actions</h3>
+        <div class="space-y-2.5 mb-5 pb-5 border-b border-line">
+          <template x-for="a in selectedBotActions" :key="a.title">
+            <button @click="runAction(a)" class="w-full text-left rounded-lg border border-line px-3 py-2.5 hover:border-ink-300 hover:bg-paper transition-colors">
+              <div class="flex items-start gap-2.5">
+                <span class="w-2 h-2 rounded-full mt-1.5 shrink-0" :class="a.severity==='high'?'bg-red-500':a.severity==='medium'?'bg-orange-400':'bg-emerald-500'"></span>
+                <span class="min-w-0 flex-1">
+                  <span class="flex items-center justify-between gap-2 mb-0.5">
+                    <span class="text-[12.5px] font-medium truncate" x-text="a.title"></span>
+                    <span class="text-[9.5px] font-mono uppercase tracking-wider px-1.5 py-0.5 rounded bg-paper border border-line text-ink-500 shrink-0" x-text="a.type"></span>
+                  </span>
+                  <span class="block text-[11.5px] text-ink-500 leading-relaxed" x-text="a.detail"></span>
+                </span>
+              </div>
+            </button>
+          </template>
+        </div>
+
+        <h3 class="text-[10.5px] font-mono uppercase tracking-widest text-ink-500 mb-2.5">Skills</h3>
+        <div class="flex flex-wrap gap-1.5 mb-5 pb-5 border-b border-line">
+          <template x-for="c in selectedBot?.capabilities||[]">
+            <span class="px-2 py-1 rounded-md bg-paper border border-line text-[11.5px] font-mono text-ink-700" x-text="c"></span>
+          </template>
+        </div>
+
+        <h3 class="text-[10.5px] font-mono uppercase tracking-widest text-ink-500 mb-3">Likely duplicates</h3>
+        <div class="space-y-2.5">
+          <template x-for="s in selectedDupes">
+            <div class="grid grid-cols-[1fr_auto] gap-2 items-center">
+              <div class="min-w-0">
+                <div class="text-[12.5px] font-mono font-medium truncate" x-text="s.project_name"></div>
+                <div class="h-[3px] rounded-full bg-line overflow-hidden mt-1">
+                  <div class="h-full rounded-full bg-accent" :style="`width:${s.score*100}%`"></div>
+                </div>
+              </div>
+              <span class="text-[11.5px] font-mono text-ink-500" x-text="Math.round(s.score*100)+'%'"></span>
+            </div>
+          </template>
+          <p x-show="!selectedDupes.length" class="text-[12.5px] text-ink-500">None above threshold.</p>
+        </div>
+
+        <button @click="tab='playbooks';playbookBot=selectedBot.id;loadSop()" class="mt-5 w-full h-8 rounded-lg border border-line text-[12.5px] font-medium text-ink-700 hover:border-ink-300 transition-colors">Open playbook →</button>
+      </div>
+    </aside>
+  </div>
+</main>
+
+<!-- ══════════════════ BLAST RADIUS (simple: apps + bots, red on impact) ══════════════════ -->
+<main x-show="tab==='impact'" x-cloak data-screen-label="Blast Radius" class="max-w-[1400px] mx-auto px-8 py-8">
+  <div class="relative rounded-xl overflow-hidden border border-graph-line bg-graph-bg" style="height: calc(100vh - 180px); min-height: 560px;">
+    <div id="cy" class="absolute inset-0"></div>
+
+    <!-- panel -->
+    <div class="absolute top-4 left-4 w-[248px] rounded-lg bg-graph-panel/90 backdrop-blur border border-white/[0.06] overflow-hidden" style="box-shadow:0 8px 24px rgba(0,0,0,.4)">
+      <div class="px-4 pt-3.5 pb-2.5">
+        <div class="text-[10.5px] font-mono uppercase tracking-widest text-white/55">If this changes…</div>
+      </div>
+      <div class="pb-2">
+        <template x-for="a in apps" :key="a.name">
+          <button @click="selectApp(a.name)"
+            class="w-full flex items-center gap-2.5 px-4 h-8 text-left transition-colors focus-ring"
+            :class="impactApp===a.name ? 'bg-white/[0.07]' : 'hover:bg-white/[0.04]'">
+            <span class="w-[6px] h-[6px] rounded-full shrink-0 transition-colors" :class="impactApp===a.name?'bg-red-500':'bg-white/25'"></span>
+            <span class="text-[13px] flex-1" :class="impactApp===a.name?'text-white':'text-white/60'" x-text="a.name"></span>
+            <span class="text-[11px] font-mono text-white/55" x-text="a.count"></span>
+          </button>
+        </template>
+      </div>
+      <div x-show="impactApp" x-cloak class="border-t border-white/[0.06] px-4 py-3">
+        <div class="text-[10.5px] font-mono uppercase tracking-widest text-red-400 mb-2">
+          <span x-text="impacted.length"></span> bots break
+        </div>
+        <div class="space-y-1.5 max-h-[180px] overflow-y-auto dark-scroll pr-1">
+          <template x-for="b in impacted">
+            <div class="text-[12px] leading-snug">
+              <div class="font-mono text-white/85" x-text="b.project_name"></div>
+              <div class="text-white/65" x-text="b.reason"></div>
+            </div>
+          </template>
+        </div>
+        <button @click="clearApp()" class="mt-2.5 text-[11.5px] text-white/60 hover:text-white/90 transition-colors">Clear selection</button>
+      </div>
+    </div>
+
+    <div class="absolute bottom-4 left-4 flex items-center gap-4 px-3.5 h-8 rounded-lg bg-graph-panel/90 backdrop-blur border border-white/[0.06] text-[11px] text-white/60">
+      <span class="flex items-center gap-1.5"><span class="w-[9px] h-[9px] rounded-full bg-white/60"></span> app</span>
+      <span class="flex items-center gap-1.5"><span class="w-[6px] h-[6px] rounded-full bg-white/35"></span> bot</span>
+      <span class="flex items-center gap-1.5"><span class="w-[6px] h-[6px] rounded-full bg-red-500"></span> impacted</span>
+    </div>
+    <div x-show="!impactApp" x-cloak class="absolute bottom-4 right-4 px-3.5 h-8 flex items-center rounded-lg bg-graph-panel/90 backdrop-blur border border-white/[0.06] text-[11.5px] text-white/60">
+      Select an application to see what breaks
+    </div>
+  </div>
+</main>
+
+<!-- ══════════════════ BRAIN (full knowledge graph) ══════════════════ -->
+<main x-show="tab==='brain'" x-cloak data-screen-label="Brain" class="max-w-[1400px] mx-auto px-8 py-8">
+  <div class="relative rounded-xl overflow-hidden border border-graph-line bg-graph-bg" style="height: calc(100vh - 180px); min-height: 560px;">
+    <div id="cyBrain" class="absolute inset-0"></div>
+
+    <!-- panel -->
+    <div class="absolute top-4 left-4 w-[268px] rounded-lg bg-graph-panel/90 backdrop-blur border border-white/[0.06] overflow-hidden" style="box-shadow:0 8px 24px rgba(0,0,0,.4)">
+      <!-- search -->
+      <div class="px-3 pt-3 pb-2 border-b border-white/[0.06]">
+        <input type="search" x-model="graphSearch" @input="applySearch()"
+          placeholder="Search bots, incidents, people…"
+          class="w-full h-8 px-3 rounded-md bg-white/[0.04] border border-white/[0.06] text-[12.5px] text-white placeholder:text-white/40 focus:outline-none focus:border-white/25">
+      </div>
+      <!-- kind filters -->
+      <div class="px-3 py-2 border-b border-white/[0.06] flex flex-wrap gap-1">
+        <template x-for="k in kindFilters">
+          <button @click="toggleKind(k.id)"
+            class="text-[10.5px] font-mono uppercase tracking-wider px-2 py-1 rounded-md transition-colors"
+            :class="visibleKinds[k.id] ? 'bg-white/[0.10] text-white/85' : 'bg-white/[0.02] text-white/30'">
+            <span class="inline-block w-[5px] h-[5px] rounded-full mr-1 align-middle" :style="'background:'+k.dot"></span>
+            <span x-text="k.label"></span>
+          </button>
+        </template>
+      </div>
+      <!-- node detail (chain view) -->
+      <div x-show="nodeDetail" x-cloak class="px-4 py-3">
+        <div class="text-[10.5px] font-mono uppercase tracking-widest text-white/55 mb-2" x-text="nodeDetail?.kindLabel"></div>
+        <div class="text-[13px] text-white/90 font-mono mb-2" x-text="nodeDetail?.title"></div>
+        <div x-show="nodeDetail?.subtitle" class="text-[12px] text-white/65 leading-snug mb-3" x-text="nodeDetail?.subtitle"></div>
+        <div x-show="nodeDetail?.chain?.length" class="space-y-1.5 mb-2">
+          <div class="text-[10px] font-mono uppercase tracking-widest text-white/40 mb-1">Chain</div>
+          <template x-for="(step, i) in (nodeDetail?.chain||[])" :key="i">
+            <div class="flex items-start gap-2 text-[12px] leading-snug">
+              <span class="text-white/30 font-mono text-[10px] pt-0.5 shrink-0" x-text="step.role"></span>
+              <span class="text-white/80 font-mono" x-text="step.label"></span>
+            </div>
+          </template>
+        </div>
+        <button @click="clearNodeDetail()" class="mt-2 text-[11.5px] text-white/60 hover:text-white/90 transition-colors">Clear selection</button>
+      </div>
+      <div x-show="!nodeDetail && !graphSearch" class="px-4 py-3 text-[12px] text-white/45 leading-snug">
+        Every automation, every failure, every fix — one graph. Tap any node.
+      </div>
+    </div>
+
+    <div class="absolute bottom-4 left-4 flex items-center gap-3 px-3.5 h-8 rounded-lg bg-graph-panel/90 backdrop-blur border border-white/[0.06] text-[11px] text-white/60">
+      <span class="flex items-center gap-1.5"><span class="w-[9px] h-[9px] rounded-full bg-white/60"></span> app</span>
+      <span class="flex items-center gap-1.5"><span class="w-[6px] h-[6px] rounded-full bg-white/35"></span> bot</span>
+      <span class="flex items-center gap-1.5"><span class="w-[6px] h-[6px] rounded-full bg-amber-300/80"></span> incident</span>
+      <span class="flex items-center gap-1.5"><span class="w-[6px] h-[6px] rounded-full bg-sky-300/80"></span> person</span>
+      <span class="flex items-center gap-1.5"><span class="w-[6px] h-[6px] rounded-full bg-accent"></span> prompt</span>
+    </div>
+
+    <!-- hint -->
+    <div x-show="!impactApp && !nodeDetail" x-cloak class="absolute bottom-4 right-4 px-3.5 h-8 flex items-center rounded-lg bg-graph-panel/90 backdrop-blur border border-white/[0.06] text-[11.5px] text-white/60">
+      Search, filter, or click any node
+    </div>
+  </div>
+</main>
+
+<!-- ══════════════════ PLAYBOOKS ══════════════════ -->
+<main x-show="tab==='playbooks'" x-cloak data-screen-label="Playbooks" class="max-w-[1400px] mx-auto px-8 py-8">
+  <div class="flex gap-6">
+    <!-- bot list -->
+    <aside class="w-[260px] shrink-0">
+      <input type="search" x-model="playbookSearch" placeholder="Filter bots…" aria-label="Filter bots"
+        class="w-full h-9 px-3.5 rounded-lg border border-line bg-white text-[13px] placeholder:text-ink-500 mb-3">
+      <div class="space-y-0.5">
+        <template x-for="b in playbookList" :key="b.id">
+          <button @click="playbookBot=b.id;loadSop()"
+            class="w-full flex items-center gap-2.5 px-3 h-9 rounded-lg text-left transition-colors focus-ring"
+            :class="playbookBot===b.id ? 'bg-white border border-line font-medium' : 'text-ink-500 hover:text-ink-900 hover:bg-white/60'">
+            <span class="w-[6px] h-[6px] rounded-full shrink-0" :class="riskBg(b.fragility_score)"></span>
+            <span class="text-[13px] font-mono truncate" x-text="b.project_name"></span>
+          </button>
+        </template>
+      </div>
+    </aside>
+
+    <!-- document -->
+    <div class="flex-1 min-w-0">
+      <div class="flex items-center justify-between mb-4">
+        <div class="flex items-center gap-2 text-[12px] font-mono text-ink-500">
+          <span>PLAYBOOK</span><span>/</span>
+          <span class="text-ink-700" x-text="currentPlaybookBot?.project_name"></span>
+        </div>
+        <!-- toggle -->
+        <div class="flex p-0.5 rounded-lg bg-line/60" role="tablist" aria-label="Playbook type">
+          <button role="tab" :aria-selected="!sopReverse" @click="sopReverse=false;loadSop()"
+            class="h-7 px-3.5 rounded-md text-[12.5px] font-medium transition-colors focus-ring"
+            :class="!sopReverse?'bg-white shadow-sm text-ink-900':'text-ink-500 hover:text-ink-700'">Bot playbook</button>
+          <button role="tab" :aria-selected="sopReverse" @click="sopReverse=true;loadSop()"
+            class="h-7 px-3.5 rounded-md text-[12.5px] font-medium transition-colors focus-ring"
+            :class="sopReverse?'bg-white shadow-sm text-ink-900':'text-ink-500 hover:text-ink-700'">Human fallback</button>
+        </div>
+      </div>
+
+      <!-- paper -->
+      <article class="bg-white border border-line rounded-xl px-12 py-10 max-w-[880px] shadow-[0_1px_3px_rgba(0,0,0,0.05)]">
+        <div class="flex items-center gap-2 mb-6 text-[11px] font-mono text-ink-500">
+          <span class="px-2 py-0.5 rounded bg-paper border border-line" x-text="sopReverse?'HUMAN FALLBACK SOP':'LIVING SOP'"></span>
+          <span>·</span><span>generated from XAML</span><span>·</span><span>refreshes every run</span>
+        </div>
+        <div class="doc" x-html="sopHtml" x-show="!sopLoading"></div>
+        <div x-show="sopLoading" x-cloak class="py-16 text-center text-[13px] text-ink-500">Generating…</div>
+      </article>
+    </div>
+  </div>
+</main>
+
+<!-- ══════════════════ STUDIO ══════════════════ -->
+<main x-show="tab==='studio'" x-cloak data-screen-label="Studio" class="max-w-[1400px] mx-auto px-8 py-10">
+  <div class="max-w-[560px] mb-8">
+    <div class="inline-flex items-center gap-2 text-[11px] font-mono uppercase tracking-widest text-ink-500 mb-3">
+      <span class="w-1 h-1 rounded-full bg-accent"></span> roadmap
+    </div>
+    <h1 class="text-[26px] font-semibold tracking-tight leading-tight">Same brain, inside Studio.</h1>
+    <p class="text-[14.5px] text-ink-500 mt-2 leading-relaxed">Cortex ships as a side panel in UiPath Studio — duplicate detection, volatility warnings and reuse hints while the developer types.</p>
+  </div>
+
+  <!-- window mock -->
+  <div class="rounded-xl overflow-hidden border border-[#26262e]" style="box-shadow:0 24px 60px -12px rgba(17,17,19,0.25)">
+    <div class="h-10 bg-[#1a1a21] flex items-center px-4 gap-2 border-b border-white/[0.06]">
+      <span class="w-3 h-3 rounded-full bg-[#3a3a44]"></span>
+      <span class="w-3 h-3 rounded-full bg-[#3a3a44]"></span>
+      <span class="w-3 h-3 rounded-full bg-[#3a3a44]"></span>
+      <span class="ml-3 text-[12px] font-mono text-white/60">UiPath Studio — SAP_InvoicePosting / Main.xaml</span>
+    </div>
+    <div class="grid grid-cols-[1fr_380px] bg-[#16161c]">
+      <!-- code -->
+      <pre class="p-6 text-[13px] leading-[1.75] font-mono overflow-x-auto dark-scroll"><code><span class="text-white/25 select-none"> 1  </span><span class="text-[#7d8bd4]">&lt;Sequence</span> <span class="text-[#9aa5b8]">DisplayName=</span><span class="text-[#a3be8c]">"SAP Invoice Posting"</span><span class="text-[#7d8bd4]">&gt;</span>
+<span class="text-white/25 select-none"> 2  </span>  <span class="text-[#7d8bd4]">&lt;ui:GetTransactionItem</span> <span class="text-[#9aa5b8]">QueueName=</span><span class="text-[#a3be8c]">"InvoicesToPost"</span> <span class="text-[#7d8bd4]">/&gt;</span>
+<span class="text-white/25 select-none"> 3  </span>  <span class="text-[#7d8bd4]">&lt;ui:InvokeWorkflowFile</span> <span class="text-[#9aa5b8]">Path=</span><span class="text-[#a3be8c]">"Workflows\SAPLogin.xaml"</span> <span class="text-[#7d8bd4]">/&gt;</span><span class="inline-block ml-3 px-1.5 rounded bg-[#e0684b]/15 text-[#e0684b] text-[11px] align-middle">duplicate</span>
+<span class="text-white/25 select-none"> 4  </span>  <span class="text-[#7d8bd4]">&lt;TryCatch&gt;</span>
+<span class="text-white/25 select-none"> 5  </span>    <span class="text-[#7d8bd4]">&lt;ui:RetryScope</span> <span class="text-[#9aa5b8]">NumberOfRetries=</span><span class="text-[#a3be8c]">"3"</span><span class="text-[#7d8bd4]">&gt;</span>
+<span class="text-white/25 select-none"> 6  </span>      <span class="text-[#7d8bd4]">&lt;ui:TypeInto</span> <span class="text-[#9aa5b8]">Selector=</span><span class="text-[#a3be8c]">"&lt;wnd app='saplogon.exe' cls='SAP_Frame'/&gt;…"</span>
+<span class="text-white/25 select-none"> 7  </span>                  <span class="text-[#9aa5b8]">Text=</span><span class="text-[#a3be8c]">"/nFB60"</span> <span class="text-[#7d8bd4]">/&gt;</span>
+<span class="text-white/25 select-none"> 8  </span>      <span class="text-[#7d8bd4]">&lt;ui:Click</span> <span class="text-[#9aa5b8]">Selector=</span><span class="text-[#a3be8c]">"…btn name='Post'"</span> <span class="text-[#7d8bd4]">/&gt;</span><span class="inline-block ml-3 px-1.5 rounded bg-amber-400/15 text-amber-300 text-[11px] align-middle">volatile</span>
+<span class="text-white/25 select-none"> 9  </span>    <span class="text-[#7d8bd4]">&lt;/ui:RetryScope&gt;</span>
+<span class="text-white/25 select-none">10  </span>  <span class="text-[#7d8bd4]">&lt;/TryCatch&gt;</span>
+<span class="text-white/25 select-none">11  </span><span class="text-[#7d8bd4]">&lt;/Sequence&gt;</span></code></pre>
+
+      <!-- cortex panel -->
+      <div class="border-l border-white/[0.06] bg-[#1a1a21] p-5 space-y-4">
+        <div class="flex items-center gap-2">
+          <div class="w-4 h-4 rounded bg-white/90 grid place-items-center"><span class="w-1.5 h-1.5 rounded-full bg-[#16161c]"></span></div>
+          <span class="text-[11px] font-mono uppercase tracking-widest text-white/65">Cortex panel</span>
+        </div>
+
+        <div class="rounded-lg bg-white/[0.04] border border-white/[0.06] p-4">
+          <div class="flex items-baseline justify-between mb-2">
+            <span class="text-[12px] text-white/65">This bot's fragility</span>
+            <span class="text-[16px] font-mono font-semibold text-amber-300">29.0</span>
+          </div>
+          <div class="h-[4px] rounded-full bg-white/[0.08] overflow-hidden">
+            <div class="h-full rounded-full bg-amber-400" style="width:58%"></div>
+          </div>
+        </div>
+
+        <div class="rounded-lg bg-white/[0.04] border border-white/[0.06] p-4 border-l-2 border-l-[#e0684b]">
+          <div class="text-[13px] font-medium text-white/85 mb-1">Duplicate detected</div>
+          <p class="text-[12px] text-white/60 leading-relaxed mb-3"><code class="text-white/70">SAPLogin.xaml</code> already exists in <span class="text-white/70">Shared_Utilities</span>.</p>
+          <button class="h-7 px-3 rounded-md bg-white/90 text-[#16161c] text-[12px] font-medium hover:bg-white transition-colors">Replace with reference</button>
+        </div>
+
+        <div class="rounded-lg bg-white/[0.04] border border-white/[0.06] p-4">
+          <div class="text-[13px] font-medium text-white/85 mb-1">8 UI changes last month</div>
+          <p class="text-[12px] text-white/60 leading-relaxed">Post button (line 8) is the most volatile selector in this workflow.</p>
+        </div>
+
+        <div class="rounded-lg bg-white/[0.04] border border-white/[0.06] p-4">
+          <div class="text-[13px] font-medium text-white/85 mb-2">Reusable components</div>
+          <div class="flex flex-wrap gap-1.5">
+            <span class="px-2 py-1 rounded bg-white/[0.06] text-[11.5px] font-mono text-white/60">EmailSender.xaml</span>
+            <span class="px-2 py-1 rounded bg-white/[0.06] text-[11.5px] font-mono text-white/60">ExcelReader.xaml</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── Knowledge Graph mockup inside Studio ─── -->
+  <div class="max-w-[560px] mt-16 mb-6">
+    <div class="inline-flex items-center gap-2 text-[11px] font-mono uppercase tracking-widest text-ink-500 mb-3">
+      <span class="w-1 h-1 rounded-full bg-accent"></span> knowledge graph in studio
+    </div>
+    <h2 class="text-[22px] font-semibold tracking-tight leading-tight">One click: see everything this bot touches.</h2>
+    <p class="text-[14px] text-ink-500 mt-2 leading-relaxed">Right-click a workflow in Studio → <em>Show in Cortex Graph</em>. The developer sees the bot's apps, past incidents, who fixed them and the LLM prompt used — without leaving the IDE.</p>
+  </div>
+
+  <div class="rounded-xl overflow-hidden border border-[#26262e]" style="box-shadow:0 24px 60px -12px rgba(17,17,19,0.25)">
+    <div class="h-10 bg-[#1a1a21] flex items-center px-4 gap-2 border-b border-white/[0.06]">
+      <span class="w-3 h-3 rounded-full bg-[#3a3a44]"></span>
+      <span class="w-3 h-3 rounded-full bg-[#3a3a44]"></span>
+      <span class="w-3 h-3 rounded-full bg-[#3a3a44]"></span>
+      <span class="ml-3 text-[12px] font-mono text-white/60">UiPath Studio — Cortex Graph · SAP_InvoicePosting</span>
+      <div class="ml-auto flex items-center gap-1 text-[11px] font-mono">
+        <span class="px-2 py-0.5 rounded bg-white/10 text-white/80">Graph</span>
+        <span class="px-2 py-0.5 rounded text-white/40">Code</span>
+      </div>
+    </div>
+    <div class="grid grid-cols-[1fr_340px] bg-[#16161c]">
+      <!-- graph canvas -->
+      <div class="relative h-[420px] overflow-hidden" style="background:radial-gradient(ellipse at center, #1c1c24 0%, #131318 70%)">
+        <svg viewBox="0 0 640 420" class="w-full h-full">
+          <!-- edges -->
+          <g stroke="#3a3a44" stroke-width="1" fill="none" opacity="0.55">
+            <path d="M320,210 L160,120"/>
+            <path d="M320,210 L500,120"/>
+            <path d="M320,210 L500,300"/>
+            <path d="M320,210 L160,300"/>
+            <path d="M500,300 L560,370"/>
+            <path d="M160,300 L90,370"/>
+          </g>
+          <g stroke="#e0684b" stroke-width="1" stroke-dasharray="3,3" fill="none" opacity="0.6">
+            <path d="M500,300 L320,210"/>
+          </g>
+          <!-- edge labels -->
+          <g font-family="ui-monospace,monospace" font-size="9" fill="#6b6b78">
+            <text x="235" y="160">uses</text>
+            <text x="410" y="160">had</text>
+            <text x="410" y="260" fill="#e0684b">used</text>
+            <text x="230" y="260">similar_to</text>
+            <text x="535" y="340">resolved_by</text>
+            <text x="105" y="340">updated</text>
+          </g>
+          <!-- center bot -->
+          <g>
+            <circle cx="320" cy="210" r="26" fill="#e6e6ea" stroke="#4a4a55" stroke-width="1.2"/>
+            <text x="320" y="215" text-anchor="middle" font-family="ui-monospace,monospace" font-size="11" font-weight="700" fill="#16161c">bot</text>
+            <text x="320" y="252" text-anchor="middle" font-family="Inter,system-ui" font-size="11" fill="#e6e6ea">SAP_InvoicePosting</text>
+          </g>
+          <!-- app SAP (top left) -->
+          <g>
+            <circle cx="160" cy="120" r="20" fill="#e6e6ea"/>
+            <text x="160" y="124" text-anchor="middle" font-family="ui-monospace,monospace" font-size="10" font-weight="700" fill="#16161c">app</text>
+            <text x="160" y="152" text-anchor="middle" font-family="Inter,system-ui" font-size="10.5" fill="#e6e6ea">SAP</text>
+          </g>
+          <!-- incident (top right) -->
+          <g>
+            <circle cx="500" cy="120" r="20" fill="#e6e6ea"/>
+            <text x="500" y="124" text-anchor="middle" font-family="ui-monospace,monospace" font-size="10" font-weight="700" fill="#c53030">!</text>
+            <text x="500" y="152" text-anchor="middle" font-family="Inter,system-ui" font-size="10.5" fill="#e6e6ea">FB60 selector broke</text>
+            <text x="500" y="165" text-anchor="middle" font-family="Inter,system-ui" font-size="9" fill="#8a8a95">2026-07-02</text>
+          </g>
+          <!-- prompt (bottom right) -->
+          <g>
+            <circle cx="500" cy="300" r="18" fill="#e6e6ea" stroke="#e0684b" stroke-width="1.5"/>
+            <text x="500" y="304" text-anchor="middle" font-family="ui-monospace,monospace" font-size="10" font-weight="700" fill="#16161c">✦</text>
+            <text x="500" y="332" text-anchor="middle" font-family="Inter,system-ui" font-size="10.5" fill="#e6e6ea">SAP selector regen</text>
+          </g>
+          <!-- person (bottom right corner) -->
+          <g>
+            <circle cx="560" cy="370" r="14" fill="#e6e6ea"/>
+            <text x="560" y="374" text-anchor="middle" font-family="ui-monospace,monospace" font-size="9" font-weight="700" fill="#16161c">◉</text>
+            <text x="560" y="397" text-anchor="middle" font-family="Inter,system-ui" font-size="10" fill="#e6e6ea">John Chen</text>
+          </g>
+          <!-- similar bot (bottom left) -->
+          <g>
+            <circle cx="160" cy="300" r="20" fill="#e6e6ea"/>
+            <text x="160" y="304" text-anchor="middle" font-family="ui-monospace,monospace" font-size="10" font-weight="700" fill="#16161c">bot</text>
+            <text x="160" y="332" text-anchor="middle" font-family="Inter,system-ui" font-size="10.5" fill="#e6e6ea">SAP_VendorMaster</text>
+          </g>
+          <!-- updated bot (bottom far left) -->
+          <g>
+            <circle cx="90" cy="370" r="14" fill="#e6e6ea" opacity="0.85"/>
+            <text x="90" y="374" text-anchor="middle" font-family="ui-monospace,monospace" font-size="9" font-weight="700" fill="#16161c">bot</text>
+            <text x="90" y="397" text-anchor="middle" font-family="Inter,system-ui" font-size="10" fill="#e6e6ea">Shared_Utilities</text>
+          </g>
+        </svg>
+
+        <!-- legend -->
+        <div class="absolute bottom-3 left-3 bg-[#1a1a21]/85 backdrop-blur border border-white/[0.06] rounded-md px-3 py-2 space-y-1">
+          <div class="text-[10px] font-mono uppercase tracking-widest text-white/40 mb-1">nodes</div>
+          <div class="flex items-center gap-2 text-[11px] text-white/70"><span class="w-2 h-2 rounded-full bg-white/80"></span> bot</div>
+          <div class="flex items-center gap-2 text-[11px] text-white/70"><span class="w-2 h-2 rounded-full bg-white/80"></span> app</div>
+          <div class="flex items-center gap-2 text-[11px] text-white/70"><span class="w-2 h-2 rounded-full bg-white/80" style="box-shadow:0 0 0 1px #c53030 inset"></span> incident</div>
+          <div class="flex items-center gap-2 text-[11px] text-white/70"><span class="w-2 h-2 rounded-full bg-white/80"></span> person</div>
+          <div class="flex items-center gap-2 text-[11px] text-white/70"><span class="w-2 h-2 rounded-full bg-white/80" style="box-shadow:0 0 0 1px #e0684b inset"></span> prompt</div>
+        </div>
+      </div>
+
+      <!-- selection panel -->
+      <div class="border-l border-white/[0.06] bg-[#1a1a21] p-5 space-y-4">
+        <div class="flex items-center gap-2">
+          <div class="w-4 h-4 rounded bg-white/90 grid place-items-center"><span class="w-1.5 h-1.5 rounded-full bg-[#16161c]"></span></div>
+          <span class="text-[11px] font-mono uppercase tracking-widest text-white/65">Selected · incident</span>
+        </div>
+
+        <div class="rounded-lg bg-white/[0.04] border border-white/[0.06] p-4 border-l-2 border-l-[#e0684b]">
+          <div class="text-[13px] font-medium text-white/85">FB60 selector broke</div>
+          <div class="text-[11.5px] text-white/50 font-mono mt-0.5">incident · 2026-07-02 · high</div>
+          <p class="text-[12px] text-white/60 leading-relaxed mt-2">SAP GUI patch renamed the <code class="text-white/75">Post</code> button. RetryScope exhausted, queue backlog grew to 47.</p>
+        </div>
+
+        <div>
+          <div class="text-[11px] font-mono uppercase tracking-widest text-white/40 mb-2">Causal chain</div>
+          <ol class="space-y-2 text-[12px] text-white/70">
+            <li class="flex gap-2"><span class="text-white/40 font-mono">1</span><span><span class="text-white/85">SAP_InvoicePosting</span> <span class="text-white/40">had</span> this incident</span></li>
+            <li class="flex gap-2"><span class="text-white/40 font-mono">2</span><span>Resolved by <span class="text-white/85">John Chen</span> <span class="text-white/40">(SRE)</span></span></li>
+            <li class="flex gap-2"><span class="text-white/40 font-mono">3</span><span>Used prompt <span class="text-white/85">SAP selector regen</span></span></li>
+            <li class="flex gap-2"><span class="text-white/40 font-mono">4</span><span>Prompt updated <span class="text-white/85">Shared_Utilities/SAPLogin.xaml</span></span></li>
+          </ol>
+        </div>
+
+        <div class="rounded-lg bg-white/[0.04] border border-white/[0.06] p-3">
+          <div class="text-[11px] font-mono uppercase tracking-widest text-white/40 mb-1">Reuse the fix</div>
+          <button class="w-full h-7 rounded-md bg-white/90 text-[#16161c] text-[12px] font-medium hover:bg-white transition-colors">Apply "SAP selector regen" here</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- ══════════════════ UPLOAD MODAL ══════════════════ -->
+<div x-show="uploadOpen" x-cloak class="fixed inset-0 z-50 grid place-items-center p-6" role="dialog" aria-modal="true" aria-label="Add project">
+  <div class="absolute inset-0 bg-ink-900/40 backdrop-blur-[2px]" @click="uploadOpen=false"></div>
+  <div class="relative w-[440px] bg-white rounded-2xl border border-line shadow-2xl p-6" x-trap="uploadOpen">
+    <h2 class="text-[16px] font-semibold tracking-tight mb-1">Add project</h2>
+    <p class="text-[13px] text-ink-500 mb-5">Upload a UiPath project as a .zip. Cortex indexes the XAML, scores fragility and generates playbooks.</p>
+
+    <label class="block border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-colors"
+      :class="dragOver?'border-accent bg-accent-soft/40':'border-line hover:border-ink-300'"
+      @dragover.prevent="dragOver=true" @dragleave="dragOver=false" @drop.prevent="dragOver=false;onDrop($event)">
+      <input type="file" accept=".zip" class="sr-only" @change="onFile($event)">
+      <div class="text-[13.5px] font-medium mb-1" x-text="uploadFile ? uploadFile.name : 'Drop .zip here'"></div>
+      <div class="text-[12px] text-ink-500" x-text="uploadFile ? fmtSize(uploadFile.size) : 'or click to browse'"></div>
+    </label>
+
+    <div class="mt-5 border border-line rounded-xl overflow-hidden">
+      <template x-for="(s,i) in uploadSteps" :key="s.label">
+        <div class="grid grid-cols-[28px_1fr_auto] gap-3 items-center px-4 py-3 border-b border-line last:border-0 bg-white">
+          <div class="w-5 h-5 rounded-full grid place-items-center border"
+            :class="uploadStepIndex>i?'bg-emerald-500 border-emerald-500 text-white':uploadStepIndex===i&&uploading?'bg-accent border-accent text-white':'bg-paper border-line text-ink-400'">
+            <span x-show="uploadStepIndex<=i" class="text-[10px] font-mono" x-text="i+1"></span>
+            <span x-show="uploadStepIndex>i" class="text-[11px]">✓</span>
+          </div>
+          <div>
+            <div class="text-[13px] font-medium" x-text="s.label"></div>
+            <div class="text-[11.5px] text-ink-500" x-text="s.detail"></div>
+          </div>
+          <div class="text-[10.5px] font-mono uppercase tracking-wider"
+            :class="uploadStepIndex>i?'text-emerald-600':uploadStepIndex===i&&uploading?'text-accent':'text-ink-400'"
+            x-text="uploadStepIndex>i?'done':uploadStepIndex===i&&uploading?'running':'waiting'"></div>
+        </div>
+      </template>
+    </div>
+
+    <div x-show="uploadResult" x-cloak class="mt-4 rounded-lg bg-accent-soft/60 border border-accent/20 px-4 py-3 text-[13px] text-accent-dark">
+      Indexed <strong x-text="uploadResult?.bots"></strong> bots · generated <strong x-text="uploadResult?.sops"></strong> playbooks
+    </div>
+
+    <div class="flex justify-end gap-2 mt-5">
+      <button @click="uploadOpen=false" class="h-8 px-3.5 rounded-lg border border-line text-[13px] font-medium text-ink-700 hover:border-ink-300 transition-colors">Cancel</button>
+      <button @click="doUpload()" :disabled="!uploadFile||uploading"
+        class="h-8 px-4 rounded-lg bg-ink-900 text-white text-[13px] font-medium disabled:opacity-40 hover:bg-ink-700 transition-colors">
+        <span x-text="uploading?'Indexing…':'Upload & index'"></span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/@alpinejs/focus@3.13.5/dist/cdn.min.js" defer></script>
+<script src="https://unpkg.com/alpinejs@3.13.5/dist/cdn.min.js" defer></script>
+<script>
+/* ─────────────────────────────────────────────────────────
+   Live-only. The design shipped with MOCK fallbacks for
+   standalone use; those are stripped here so the UI always
+   reflects the real /api endpoints.
+   ───────────────────────────────────────────────────────── */
+const _DESIGN_MOCK_STUB = {
+  bots: [
+    {id:'hr-onboarding', project_name:'HR_OnboardingOrchestrator', intent:'Creates ActiveDirectory accounts and opens portals for new hires after HR approves an Excel onboarding form.', retry_blocks:2, hitl_nodes:3, activity_count:64, applications:['ActiveDirectory','Browser','Excel'], capabilities:['ad_provisioning','browser_automation','hitl_approval_gate','queue_producer','queue_consumer','hitl_form_task'], fragility:{score:32, selector_volatility:71, retry_density:38, exception_surface:52, cross_app_coupling:66, hitl_coverage:24}},
+    {id:'sap-vendor', project_name:'SAP_VendorMaster', intent:'Maintains vendor master records in SAP from approved change requests arriving by email.', retry_blocks:3, hitl_nodes:1, activity_count:48, applications:['SAP','Outlook'], capabilities:['sap_gui_automation','email_intake','master_data'], fragility:{score:31, selector_volatility:78, retry_density:45, exception_surface:40, cross_app_coupling:31, hitl_coverage:60}},
+    {id:'sap-invoice', project_name:'SAP_InvoicePosting', intent:'Posts vendor invoices into SAP FB60 from a validated queue.', retry_blocks:3, hitl_nodes:0, activity_count:41, applications:['SAP','Outlook'], capabilities:['sap_gui_automation','queue_consumer','invoice_posting'], fragility:{score:29, selector_volatility:74, retry_density:52, exception_surface:35, cross_app_coupling:28, hitl_coverage:0}},
+    {id:'excel-recon', project_name:'Excel_MonthlyReconciliation', intent:'Reconciles Excel ledgers against SAP GL exports and mails a variance report monthly.', retry_blocks:1, hitl_nodes:0, activity_count:36, applications:['Excel','Outlook'], capabilities:['excel_processing','reporting','email_send'], fragility:{score:22, selector_volatility:18, retry_density:22, exception_surface:44, cross_app_coupling:52, hitl_coverage:0}},
+    {id:'email-intake', project_name:'Email_InvoiceIntake', intent:'Watches a shared mailbox, extracts invoice PDFs and queues them for posting.', retry_blocks:2, hitl_nodes:1, activity_count:29, applications:['Outlook','Excel'], capabilities:['email_intake','document_extraction','queue_producer'], fragility:{score:21, selector_volatility:12, retry_density:30, exception_surface:38, cross_app_coupling:40, hitl_coverage:45}},
+    {id:'shared-utils', project_name:'Shared_Utilities', intent:'Common library: SAP login, Excel reader, email sender, logging wrappers.', retry_blocks:4, hitl_nodes:0, activity_count:58, applications:['SAP','Excel'], capabilities:['sap_gui_automation','excel_processing','email_send','logging'], fragility:{score:17, selector_volatility:34, retry_density:48, exception_surface:20, cross_app_coupling:15, hitl_coverage:0}},
+  ],
+  similarity: {
+    'sap-invoice':[{dst_id:'shared-utils',project_name:'Shared_Utilities',score:0.72,method:'xaml_subtree'},{dst_id:'sap-vendor',project_name:'SAP_VendorMaster',score:0.51,method:'capability_overlap'}],
+    'sap-vendor':[{dst_id:'sap-invoice',project_name:'SAP_InvoicePosting',score:0.51,method:'capability_overlap'},{dst_id:'shared-utils',project_name:'Shared_Utilities',score:0.44,method:'xaml_subtree'}],
+    'email-intake':[{dst_id:'excel-recon',project_name:'Excel_MonthlyReconciliation',score:0.38,method:'capability_overlap'}],
+    'excel-recon':[{dst_id:'email-intake',project_name:'Email_InvoiceIntake',score:0.38,method:'capability_overlap'}],
+    'shared-utils':[{dst_id:'sap-invoice',project_name:'SAP_InvoicePosting',score:0.72,method:'xaml_subtree'}],
+    'hr-onboarding':[],
+  },
+  blast: {
+    'SAP':[{id:'sap-vendor',project_name:'SAP_VendorMaster',reason:'SAP GUI selectors in 12 activities'},{id:'sap-invoice',project_name:'SAP_InvoicePosting',reason:'Posts via FB60 transaction screen'},{id:'shared-utils',project_name:'Shared_Utilities',reason:'SAPLogin.xaml used by 2 bots'}],
+    'Excel':[{id:'hr-onboarding',project_name:'HR_OnboardingOrchestrator',reason:'Reads onboarding template workbook'},{id:'excel-recon',project_name:'Excel_MonthlyReconciliation',reason:'Ledger read/write across 8 sheets'},{id:'email-intake',project_name:'Email_InvoiceIntake',reason:'Writes extraction results to workbook'},{id:'shared-utils',project_name:'Shared_Utilities',reason:'ExcelReader.xaml shared component'}],
+    'Outlook':[{id:'sap-vendor',project_name:'SAP_VendorMaster',reason:'Change requests arrive by mail'},{id:'sap-invoice',project_name:'SAP_InvoicePosting',reason:'Failure notifications'},{id:'email-intake',project_name:'Email_InvoiceIntake',reason:'Watches shared mailbox'},{id:'excel-recon',project_name:'Excel_MonthlyReconciliation',reason:'Mails variance report'}],
+    'Browser':[{id:'hr-onboarding',project_name:'HR_OnboardingOrchestrator',reason:'Opens HR portal for provisioning'}],
+    'ActiveDirectory':[{id:'hr-onboarding',project_name:'HR_OnboardingOrchestrator',reason:'Creates accounts via AD portal'}],
+  },
+  analytics: {automations_indexed:6, dedupe_candidate_pairs:3, average_fragility:25.38, top_fragile:['HR_OnboardingOrchestrator','SAP_VendorMaster','SAP_InvoicePosting'], sops_generated:12},
+  consultant: {
+    adversarial_paragraph:"Before you write a single activity: 72% of what you're describing already runs in production. SAP_InvoicePosting posts to FB60 today, and Email_InvoiceIntake already extracts invoices from the mailbox you'd be watching. Building this from scratch adds a third bot with overlapping selectors to an SAP surface that changed 8 times last month — you'd be tripling the maintenance bill for a capability you mostly own.",
+    modality:'EXTEND, DON\'T BUILD',
+    similar_automations:[{dst_id:'sap-invoice',project_name:'SAP_InvoicePosting',score:0.72,method:'intent_similarity'},{dst_id:'email-intake',project_name:'Email_InvoiceIntake',score:0.58,method:'capability_overlap'},{dst_id:'shared-utils',project_name:'Shared_Utilities',score:0.41,method:'xaml_subtree'}],
+    reusable_components:['SAPLogin.xaml','ExcelReader.xaml','EmailSender.xaml','QueueDispatcher.xaml'],
+    effort_estimate:'3 days if you extend SAP_InvoicePosting — 15 days from scratch',
+    reasons_not_to_build:['SAP_InvoicePosting already covers the posting flow; a config change adds your document type.','The mailbox watcher exists — Email_InvoiceIntake queues to the same Orchestrator queue.','SAP GUI selectors changed 8× last month; every new bot on that surface inherits the volatility.','Shared_Utilities owns SAP login — duplicating it is the #1 source of drift in this estate.']
+  },
+  sop: (bot, reverse) => reverse ? `# Human fallback — ${bot.project_name}
+
+> When this automation is down, a human executes this procedure. Generated from the bot's actual XAML.
+
+## Prerequisites
+- Access to **${(bot.applications||[]).join(', ')}**
+- Membership in the \`RPA_Fallback\` AD group
+- The run ledger open at \`\\\\ops\\rpa\\ledger.xlsx\`
+
+## Procedure
+1. Open the Orchestrator queue and note all **New** items for this process.
+2. For each item, perform the steps below **in order** — do not batch.
+3. ${bot.intent}
+4. Mark the queue item **Successful** manually, with your initials in the comment.
+
+## Escalation
+| Condition | Action |
+|---|---|
+| More than 20 pending items | Page the on-call architect |
+| Source system unavailable | Log downtime, stop processing |
+| Data mismatch | Move item to \`Manual_Review\` queue |
+
+## Handback
+When the bot is restored, process **only** items created after your last manual entry. The bot resumes from the queue automatically.` : `# Living SOP — ${bot.project_name}
+
+**Intent.** ${bot.intent}
+
+> This SOP is generated from the automation's actual XAML and refreshes on every run.
+
+## What this bot does
+This bot retrieves work from its Orchestrator queue and processes each transaction against ${(bot.applications||[]).join(' and ')}. Built-in retry scopes (${bot.retry_blocks}) handle transient failures; ${bot.hitl_nodes>0?`${bot.hitl_nodes} human-in-the-loop touchpoint${bot.hitl_nodes>1?'s':''} gate the irreversible steps`:'the flow runs fully unattended'}.
+
+## Workflow: \`Main.xaml\`
+1. \`GetTransactionItem\` — pull next item from queue
+2. \`InvokeWorkflowFile\` — load shared components
+3. \`RetryScope ×${bot.retry_blocks}\` — main application interaction
+4. \`SetTransactionStatus\` — report outcome to Orchestrator
+
+## Failure modes handled
+- \`ui:SelectorNotFoundException\` — retries, then escalates with screenshot
+- \`BusinessRuleException\` — routes item to \`Manual_Review\`
+- Application timeout — kills process tree, restarts session
+
+## Signals
+| Metric | Value |
+|---|---|
+| Activities | ${bot.activity_count} |
+| Retry blocks | ${bot.retry_blocks} |
+| HITL nodes | ${bot.hitl_nodes} |
+| Fragility | ${bot.fragility.score} |`,
+};
+
+/* ───────────────────────────────────────────────────────── */
+async function apiGet(path){
+  try{ const r = await fetch(path); if(!r.ok) throw 0; return await r.json(); }
+  catch(e){ return null; }
+}
+
+function app(){
+  return {
+    tabs: [
+      {id:'overview', label:'Overview', icon:svgIcon('overview')},
+      {id:'advisor', label:'Advisor', icon:svgIcon('advisor')},
+      {id:'genome', label:'Genome', icon:svgIcon('genome')},
+      {id:'impact', label:'Blast Radius', icon:svgIcon('impact')},
+      {id:'brain', label:'Brain', icon:svgIcon('brain')},
+      {id:'playbooks', label:'Playbooks', icon:svgIcon('playbooks')},
+      {id:'studio', label:'Studio', icon:svgIcon('studio'), soon:true},
+    ],
+    tab:'overview',
+    analytics:null,
+    bots:[], apps:[], simEdges:[],
+    // advisor
+    spec:'', asking:false, verdict:null,
+    suggestions:['I want to build an SAP invoice bot','Automate onboarding new hires with an approval','Extract invoice data from emails','Reconcile Excel with SAP GL monthly'],
+    // genome
+    selectedBot:null, selectedDupes:[],
+    // impact / knowledge graph
+    impactApp:null, impacted:[], cy:null, cyBrain:null,
+    kgNodes:[], kgEdges:[],
+    graphSearch:'',
+    visibleKinds: {bot:true, app:true, incident:true, person:true, prompt:true},
+    kindFilters: [
+      {id:'bot',      label:'bots',      dot:'#9a9aa6'},
+      {id:'app',      label:'apps',      dot:'#b9b9c6'},
+      {id:'incident', label:'incidents', dot:'#fcd34d'},
+      {id:'person',   label:'people',    dot:'#7dd3fc'},
+      {id:'prompt',   label:'prompts',   dot:'#5b5bd6'},
+    ],
+    nodeDetail: null,
+    // playbooks
+    playbookBot:null, playbookSearch:'', sopReverse:false, sopHtml:'', sopLoading:false,
+    // demo story mode
+    demoActive:false, demoStep:0,
+    demoSteps:[
+      {id:'health',   title:'Open with estate health',       caption:'Start from risk, reuse, and exposure.',                         tab:'overview'},
+      {id:'fragile',  title:'Drill into the riskiest bot',   caption:'Show why fragility is measurable.',                              tab:'genome'},
+      {id:'blast',    title:'Light up SAP blast radius',     caption:'One app change, several impacted bots.',                         tab:'impact'},
+      {id:'playbook', title:'Show human fallback SOP',       caption:'Generated continuity plan from XAML.',                           tab:'playbooks'},
+      {id:'advisor',  title:'Challenge a new build',         caption:'Cortex recommends extend, do not rebuild.',                      tab:'advisor'},
+    ],
+    // upload (with progressive timeline)
+    uploadOpen:false, uploadFile:null, uploading:false, uploadResult:null, dragOver:false, uploadStepIndex:0,
+    uploadSteps:[
+      {label:'Receive package',     detail:'Validate the zip and locate project.json'},
+      {label:'Parse XAML genome',   detail:'Extract selectors, apps, workflows, retries and HITL'},
+      {label:'Score fragility',     detail:'Compute volatility, coupling and exception surface'},
+      {label:'Update estate graph', detail:'Refresh similarity, blast-radius and recommendations'},
+      {label:'Generate playbooks',  detail:'Create bot SOP and human fallback SOP'},
+    ],
+
+    async init(){
+      const [an, list] = await Promise.all([apiGet('/analytics'), apiGet('/automations')]);
+      this.analytics = an || {automations_indexed:0, dedupe_candidate_pairs:0, average_fragility:0};
+      const base = list || [];
+      // enrich each bot with detail (capabilities, applications, fragility) — all live from API
+      const details = await Promise.all(base.map(async b=>{
+        const d = await apiGet(`/automations/${encodeURIComponent(b.id)}`);
+        const merged = {...b, ...(d||{})};
+        merged.fragility_score = merged.fragility?.score ?? 0;
+        merged.applications = merged.applications || [];
+        merged.capabilities = merged.capabilities || [];
+        return merged;
+      }));
+      this.bots = details;
+      // Batch-fetch similarity for every bot to draw live sim edges in the graph
+      const simResults = await Promise.all(details.map(b => apiGet(`/similarity/${encodeURIComponent(b.id)}?min_score=0.3`)));
+      const edges = [];
+      const seenPairs = new Set();
+      details.forEach((b, i) => {
+        (simResults[i] || []).forEach(r => {
+          const key = [b.id, r.dst_id].sort().join('|');
+          if (seenPairs.has(key)) return;
+          seenPairs.add(key);
+          if (details.find(x => x.id === r.dst_id)) edges.push({src: b.id, dst: r.dst_id, score: r.score});
+        });
+      });
+      this.simEdges = edges;
+      // Derive apps list from live data
+      const counts = {};
+      details.forEach(b=>(b.applications||[]).forEach(a=>counts[a]=(counts[a]||0)+1));
+      this.apps = Object.entries(counts).sort((a,b)=>b[1]-a[1]).map(([name,count])=>({name,count}));
+      if(!this.playbookBot && details.length) this.playbookBot = details[0].id;
+      this.loadSop();
+    },
+
+    /* ── shared ── */
+    fmt1(n){ return n==null?'—':Number(n).toFixed(n%1?2:0); },
+    fmtSize(b){ return b>1e6?(b/1e6).toFixed(1)+' MB':(b/1e3).toFixed(0)+' KB'; },
+    riskBg(s){ return s>=30?'bg-red-500':s>=25?'bg-orange-400':s>=18?'bg-amber-400':'bg-emerald-500'; },
+    riskText(s){ return s>=30?'text-red-600':s>=25?'text-orange-500':s>=18?'text-amber-500':'text-emerald-600'; },
+    riskSoftBg(s){ return s>=30?'bg-red-50 border-red-200':s>=25?'bg-orange-50 border-orange-200':s>=18?'bg-amber-50 border-amber-200':'bg-emerald-50 border-emerald-200'; },
+    riskLabel(s){ return s>=30?'High fragility':s>=25?'Elevated':s>=18?'Moderate':'Stable'; },
+    get botsSorted(){ return [...this.bots].sort((a,b)=>b.fragility_score-a.fragility_score); },
+    get mostFragile(){ return this.botsSorted[0]; },
+    get appRisk(){
+      return this.apps.map(a=>{
+        const related = this.bots.filter(b=>(b.applications||[]).includes(a.name));
+        const avg = related.length ? related.reduce((sum,b)=>sum+(b.fragility_score||0),0)/related.length : 0;
+        return {...a, avgFragility:avg};
+      }).sort((a,b)=>b.avgFragility-a.avgFragility || b.count-a.count);
+    },
+    get topRiskApp(){ return this.appRisk[0]; },
+    get estateHealth(){
+      const avg = this.analytics?.average_fragility ?? 0;
+      const dupe = this.analytics?.dedupe_candidate_pairs ?? this.simEdges.length;
+      const score = Math.max(0, Math.min(100, 100 - avg * 1.9 - dupe * 3));
+      return {score:Math.round(score), savedDays:Math.max(3, Math.round(dupe*4 + this.bots.length*1.5))};
+    },
+    get recommendedActions(){
+      const actions = [];
+      if(this.mostFragile){
+        actions.push({
+          type:'stabilize', severity:'high', tab:'genome', botId:this.mostFragile.id,
+          title:'Stabilize '+this.mostFragile.project_name,
+          detail:'Highest composite fragility. Review volatile selectors, retry density, and exception handling before adding new work.'
+        });
+      }
+      if(this.topRiskApp){
+        actions.push({
+          type:'blast radius', severity:'high', tab:'impact', app:this.topRiskApp.name,
+          title:'Reduce '+this.topRiskApp.name+' dependency risk',
+          detail:this.topRiskApp.count+' bots depend on this application. Validate shared components and fallback steps before the next UI change.'
+        });
+      }
+      if(this.simEdges.length){
+        const e = [...this.simEdges].sort((a,b)=>b.score-a.score)[0];
+        const src = this.bots.find(b=>b.id===e.src), dst = this.bots.find(b=>b.id===e.dst);
+        actions.push({
+          type:'dedupe', severity:'medium', tab:'genome', botId:src?.id,
+          title:'Review duplicate candidates',
+          detail:(src?.project_name||'One bot')+' overlaps with '+(dst?.project_name||'another bot')+'. Merge or extract a shared component.'
+        });
+      }
+      const library = this.bots.find(b=>(b.capabilities||[]).includes('library') || /shared|util/i.test(b.project_name));
+      if(library){
+        actions.push({
+          type:'reuse', severity:'low', tab:'playbooks', botId:library.id,
+          title:'Show reusable components from '+library.project_name,
+          detail:'Use this as the positive ending: Cortex does not only warn, it points teams toward reuse.'
+        });
+      }
+      return actions.slice(0,4);
+    },
+    get selectedBotActions(){
+      const b = this.selectedBot;
+      if(!b) return [];
+      const actions = [];
+      const topDim = this.fragDims(b).sort((x,y)=>(y.v||0)-(x.v||0))[0];
+      actions.push({
+        type:'stabilize', severity:b.fragility_score>=30?'high':b.fragility_score>=25?'medium':'low', tab:'genome', botId:b.id,
+        title:'Stabilize risk drivers',
+        detail:topDim ? `${topDim.label} is the strongest signal at ${this.fmt1(topDim.v)}. Review this before changing the workflow.` : 'Review fragility signals before adding new scope.'
+      });
+      const highestApp = (b.applications||[])
+        .map(name=>this.appRisk.find(a=>a.name===name))
+        .filter(Boolean)
+        .sort((a,c)=>c.avgFragility-a.avgFragility || c.count-a.count)[0];
+      if(highestApp){
+        actions.push({
+          type:'blast radius', severity:highestApp.count>2?'high':'medium', tab:'impact', app:highestApp.name,
+          title:'Inspect '+highestApp.name+' blast radius',
+          detail:`${highestApp.count} indexed bot${highestApp.count===1?'':'s'} depend on ${highestApp.name}. Show the impact graph before release.`
+        });
+      }
+      if(this.selectedDupes.length){
+        const d = this.selectedDupes[0];
+        actions.push({
+          type:'dedupe', severity:'medium', tab:'genome', botId:b.id,
+          title:'Review overlap with '+d.project_name,
+          detail:`Similarity is ${Math.round(d.score*100)}%. Extract shared logic or retire duplicated steps.`
+        });
+      }
+      actions.push({
+        type:'fallback', severity:b.hitl_nodes>0?'low':'medium', tab:'playbooks', botId:b.id, reverse:true,
+        title:'Open human fallback SOP',
+        detail:b.hitl_nodes>0 ? 'HITL is present. Validate the manual handback steps with operations.' : 'No HITL nodes detected. Make sure the manual fallback is demo-ready.'
+      });
+      return actions.slice(0,4);
+    },
+    svgIconLocal(k){
+      if(k==='play') return '<svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M4 2.5v9l7-4.5-7-4.5Z" fill="currentColor"/></svg>';
+      return '';
+    },
+
+    setTab(id){
+      this.tab = id;
+      if(id==='impact') this.$nextTick(()=>this.initGraph());
+      if(id==='brain')  this.$nextTick(()=>this.initGraphBrain());
+    },
+    runAction(a){
+      if(!a) return;
+      this.tab = a.tab || 'overview';
+      if(a.botId && a.tab==='genome') this.$nextTick(()=>this.selectBot(a.botId));
+      if(a.botId && a.tab==='playbooks') this.$nextTick(()=>{ this.playbookBot=a.botId; this.sopReverse=!!a.reverse; this.loadSop(); });
+      if(a.app && a.tab==='impact') this.$nextTick(()=>{ this.initGraph(); this.selectApp(a.app); });
+    },
+    startDemo(){ this.demoActive=true; this.goDemoStep(0); },
+    goDemoStep(i){
+      this.demoStep = Math.max(0, Math.min(this.demoSteps.length-1, i));
+      this.demoActive = true;
+      const s = this.demoSteps[this.demoStep];
+      this.tab = s.tab;
+      this.$nextTick(async ()=>{
+        if(s.id==='fragile' && this.mostFragile) await this.selectBot(this.mostFragile.id);
+        if(s.id==='blast' && this.topRiskApp){ this.initGraph(); await this.selectApp(this.topRiskApp.name); }
+        if(s.id==='playbook' && this.mostFragile){ this.playbookBot=this.mostFragile.id; this.sopReverse=true; await this.loadSop(); }
+        if(s.id==='advisor'){ this.spec='I want to build an SAP invoice bot that reads email attachments and posts invoices'; await this.ask(); }
+      });
+    },
+    nextDemoStep(){
+      if(this.demoStep>=this.demoSteps.length-1){ this.demoActive=false; return; }
+      this.goDemoStep(this.demoStep+1);
+    },
+    prevDemoStep(){ this.goDemoStep(this.demoStep-1); },
+
+    /* ── advisor ── */
+    async ask(){
+      if(!this.spec.trim()) return;
+      this.asking = true; this.verdict = null;
+      try{
+        const r = await fetch('/consultant',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({spec:this.spec})});
+        if(!r.ok) throw 0;
+        this.verdict = await r.json();
+      }catch(e){
+        this.verdict = { adversarial_paragraph: 'The estate advisor is unreachable. Check that the API is running.', modality:'UNAVAILABLE', similar_automations:[], reusable_components:[], effort_estimate:'—', reasons_not_to_build:[] };
+      }
+      this.asking = false;
+    },
+    openBotFromAdvisor(s){
+      const b = this.bots.find(x=>x.id===s.dst_id || x.project_name===s.project_name);
+      if(b){ this.tab='genome'; this.selectBot(b.id); }
+    },
+
+    /* ── genome ── */
+    async selectBot(id){
+      this.selectedBot = this.bots.find(b=>b.id===id) || null;
+      this.selectedDupes = [];
+      if(!this.selectedBot) return;
+      const sim = await apiGet(`/similarity/${encodeURIComponent(id)}?min_score=0.3`);
+      this.selectedDupes = sim || [];
+    },
+    fragDims(b){
+      if(!b?.fragility) return [];
+      const f = b.fragility;
+      return [
+        {label:'Selector volatility', v:f.selector_volatility??0},
+        {label:'Retry density', v:f.retry_density??0},
+        {label:'Exception surface', v:f.exception_surface??0},
+        {label:'Cross-app coupling', v:f.cross_app_coupling??0},
+        {label:'HITL coverage', v:f.hitl_coverage??0},
+      ];
+    },
+
+    /* ── Blast Radius (simple: apps + bots, RED on impact) ── */
+    initGraph(){
+      if(this.cy){ this.cy.resize(); this.animateOpen(); return; }
+      const el = document.getElementById('cy');
+      if(!el || !this.bots.length) return;
+
+      const elements = [];
+      const deg = {};
+      this.bots.forEach(b=>{ deg[b.id] = (b.applications||[]).length; });
+      this.apps.forEach(a=>{ deg['app:'+a.name] = a.count; });
+      this.simEdges.forEach(e=>{ deg[e.src]=(deg[e.src]||0)+1; deg[e.dst]=(deg[e.dst]||0)+1; });
+
+      this.apps.forEach(a=>elements.push({data:{id:'app:'+a.name, label:a.name, kind:'app', deg:deg['app:'+a.name]||1, icon:appIconURI(a.name)}}));
+      this.bots.forEach(b=>{
+        elements.push({data:{id:b.id, label:b.project_name, kind:'bot', frag:b.fragility_score, deg:deg[b.id]||1, icon:botIconURI(b)}});
+        (b.applications||[]).forEach(a=>elements.push({data:{id:`${b.id}→${a}`, source:b.id, target:'app:'+a, kind:'uses'}}));
+      });
+      this.simEdges.forEach(e=>{
+        const key = [e.src, e.dst].sort().join('|');
+        elements.push({data:{id:'sim:'+key, source:e.src, target:e.dst, kind:'sim'}});
+      });
+
+      this.cy = cytoscape({
+        container: el,
+        elements,
+        wheelSensitivity: 0.2,
+        minZoom: 0.3, maxZoom: 2.2,
+        style: [
+          { selector:'node', style:{
+              'background-color':'#9a9aa6',
+              'background-image':'data(icon)', 'background-fit':'none',
+              'background-width':'58%','background-height':'58%',
+              'background-clip':'none', 'border-width':0,
+              'label':'data(label)', 'color':'#8a8a95',
+              'font-family':'Geist, sans-serif', 'font-size':'9px', 'font-weight':400,
+              'text-valign':'bottom', 'text-margin-y':5,
+              'width':'mapData(deg, 1, 6, 15, 34)', 'height':'mapData(deg, 1, 6, 15, 34)',
+              'transition-property':'background-color, opacity, width, height, border-width, border-color',
+              'transition-duration':'160ms',
+          }},
+          { selector:'node[kind="app"]', style:{
+              'background-color':'#b9b9c6',
+              'width':'mapData(deg, 1, 6, 22, 46)', 'height':'mapData(deg, 1, 6, 22, 46)',
+              'font-weight':500, 'color':'#9a9aa6',
+          }},
+          { selector:'edge', style:{
+              'width':1, 'line-color':'#ffffff', 'opacity':0.12,
+              'curve-style':'straight',
+              'transition-property':'opacity, line-color, width',
+              'transition-duration':'160ms',
+          }},
+          { selector:'edge[kind="sim"]', style:{ 'line-style':'dashed', 'opacity':0.08 }},
+          { selector:'.dim', style:{ 'opacity':0.14 }},
+          { selector:'edge.dim', style:{ 'opacity':0.04 }},
+          /* impact — RED */
+          { selector:'node.hot',       style:{ 'background-color':'#ef4444', 'color':'#fecaca', 'opacity':1, 'border-width':2, 'border-color':'#fecaca' }},
+          { selector:'node.hotcenter', style:{ 'background-color':'#dc2626', 'color':'#fff',    'opacity':1, 'border-width':3, 'border-color':'#ffffff' }},
+          { selector:'edge.hot',       style:{ 'line-color':'#ef4444', 'opacity':0.85, 'width':2 }},
+          { selector:'node.near', style:{ 'opacity':1 }},
+          { selector:'edge.near', style:{ 'opacity':0.4 }},
+        ],
+        layout:{ name:'cose', animate:true, animationDuration:1100, animationEasing:'ease-out', idealEdgeLength:165, nodeRepulsion:32000, nodeOverlap:32, gravity:0.05, componentSpacing:120, padding:80, randomize:true, fit:false },
+      });
+      this.cy.one('layoutstop', ()=>this.fitAiry());
+
+      const ro = new ResizeObserver(()=>{
+        if(!this.cy) return;
+        this.cy.resize();
+        if(this.impactApp) this.zoomToImpact(); else this.fitAiry();
+      });
+      ro.observe(el);
+
+      this.cy.on('mouseover','node',(e)=>{
+        if(this.impactApp) return;
+        const n = e.target, hood = n.closedNeighborhood();
+        this.cy.elements().addClass('dim');
+        hood.removeClass('dim').addClass('near');
+        n.removeClass('dim');
+      });
+      this.cy.on('mouseout','node',()=>{
+        if(this.impactApp) return;
+        this.cy.elements().removeClass('dim near');
+      });
+      this.cy.on('tap','node',(e)=>{
+        const n = e.target;
+        if(n.data('kind')==='app'){ this.selectApp(n.data('label')); return; }
+        if(this.impactApp) this.clearApp();
+        const hood = n.closedNeighborhood();
+        this.cy.elements().removeClass('near').addClass('dim');
+        hood.removeClass('dim').addClass('near');
+        n.removeClass('dim');
+        this.cy.animate({ fit:{ eles:hood, padding:110 }, duration:600, easing:'ease-in-out-cubic' });
+      });
+      this.cy.on('tap',(e)=>{ if(e.target===this.cy) this.clearApp(); });
+    },
+
+    /* ── Brain (full knowledge graph: 5 kinds, search, chain view) ── */
+    async initGraphBrain(){
+      if(this.cyBrain){ this.cyBrain.resize(); return; }
+      const el = document.getElementById('cyBrain');
+      if(!el) return;
+
+      const kg = await apiGet('/knowledge-graph');
+      if(!kg) return;
+      this.kgNodes = kg.nodes || [];
+      this.kgEdges = kg.edges || [];
+
+      const elements = [];
+      const deg = {};
+      this.kgNodes.forEach(n=>{ deg[n.id] = 1; });
+      this.kgEdges.forEach(e=>{ deg[e.src]=(deg[e.src]||0)+1; deg[e.dst]=(deg[e.dst]||0)+1; });
+
+      this.kgNodes.forEach(n=>{
+        elements.push({data:{id:n.id, label:n.label, kind:n.kind, deg:deg[n.id]||1, icon:nodeIconURI(n), raw:n}});
+      });
+      this.kgEdges.forEach((e, i)=>{
+        elements.push({data:{id:'e:'+i+':'+e.src+'->'+e.dst+':'+e.kind, source:e.src, target:e.dst, kind:e.kind}});
+      });
+
+      this.cyBrain = cytoscape({
+        container: el,
+        elements,
+        wheelSensitivity: 0.2,
+        minZoom: 0.3, maxZoom: 2.2,
+        style: [
+          { selector:'node', style:{
+              'background-color':'#9a9aa6',
+              'background-image':'data(icon)', 'background-fit':'none',
+              'background-width':'58%','background-height':'58%',
+              'background-clip':'none', 'border-width':0,
+              'label':'data(label)', 'color':'#8a8a95',
+              'font-family':'Geist, sans-serif', 'font-size':'9px', 'font-weight':400,
+              'text-valign':'bottom', 'text-margin-y':5,
+              'width':'mapData(deg, 1, 6, 15, 34)', 'height':'mapData(deg, 1, 6, 15, 34)',
+              'transition-property':'background-color, opacity, width, height',
+              'transition-duration':'160ms',
+          }},
+          { selector:'node[kind="app"]',      style:{ 'background-color':'#b9b9c6', 'width':'mapData(deg, 1, 6, 22, 46)', 'height':'mapData(deg, 1, 6, 22, 46)', 'font-weight':500, 'color':'#9a9aa6' }},
+          { selector:'node[kind="incident"]', style:{ 'background-color':'#fcd34d', 'width':'mapData(deg, 1, 4, 14, 22)', 'height':'mapData(deg, 1, 4, 14, 22)', 'color':'#a68300' }},
+          { selector:'node[kind="person"]',   style:{ 'background-color':'#7dd3fc', 'width':'mapData(deg, 1, 4, 16, 26)', 'height':'mapData(deg, 1, 4, 16, 26)', 'color':'#0369a1' }},
+          { selector:'node[kind="prompt"]',   style:{ 'background-color':'#c7d2fe', 'width':'mapData(deg, 1, 4, 14, 22)', 'height':'mapData(deg, 1, 4, 14, 22)', 'color':'#4747b8' }},
+          { selector:'edge', style:{ 'width':1, 'line-color':'#ffffff', 'opacity':0.12, 'curve-style':'bezier', 'transition-property':'opacity, line-color', 'transition-duration':'160ms' }},
+          { selector:'edge[kind="similar_to"]', style:{ 'line-style':'dashed', 'opacity':0.08 }},
+          { selector:'edge[kind="had"]',        style:{ 'opacity':0.14 }},
+          { selector:'edge[kind="resolved_by"]',style:{ 'opacity':0.16 }},
+          { selector:'edge[kind="used"]',       style:{ 'line-style':'dashed', 'opacity':0.14, 'line-color':'#a5b4fc' }},
+          { selector:'edge[kind="updated"]',    style:{ 'line-style':'dashed', 'opacity':0.14, 'line-color':'#e0684b' }},
+          { selector:'.dim', style:{ 'opacity':0.14 }},
+          { selector:'edge.dim', style:{ 'opacity':0.04 }},
+          { selector:'.hidden', style:{ 'display':'none' }},
+          { selector:'node.near', style:{ 'opacity':1 }},
+          { selector:'edge.near', style:{ 'opacity':0.4 }},
+        ],
+        layout:{ name:'cose', animate:true, animationDuration:1100, animationEasing:'ease-out', idealEdgeLength:150, nodeRepulsion:26000, nodeOverlap:24, gravity:0.06, componentSpacing:110, padding:80, randomize:true, fit:false },
+      });
+      this.cyBrain.one('layoutstop', ()=>this.fitAiry(this.cyBrain));
+
+      const ro = new ResizeObserver(()=>{ if(this.cyBrain){ this.cyBrain.resize(); this.fitAiry(this.cyBrain); }});
+      ro.observe(el);
+
+      this.cyBrain.on('mouseover','node',(e)=>{
+        if(this.nodeDetail) return;
+        const n = e.target, hood = n.closedNeighborhood();
+        this.cyBrain.elements().addClass('dim');
+        hood.removeClass('dim').addClass('near');
+        n.removeClass('dim');
+      });
+      this.cyBrain.on('mouseout','node',()=>{
+        if(this.nodeDetail) return;
+        this.cyBrain.elements().removeClass('dim near');
+      });
+      this.cyBrain.on('tap','node',(e)=>{
+        const n = e.target;
+        this.showNodeDetail(n.data('raw'));
+        const hood = n.closedNeighborhood();
+        this.cyBrain.elements().removeClass('near').addClass('dim');
+        hood.removeClass('dim').addClass('near');
+        n.removeClass('dim');
+        this.cyBrain.animate({ fit:{ eles:hood, padding:110 }, duration:600, easing:'ease-in-out-cubic' });
+      });
+      this.cyBrain.on('tap',(e)=>{ if(e.target===this.cyBrain) this.clearNodeDetail(); });
+    },
+
+    /* ── Brain search + kind filter ── */
+    async applySearch(){
+      if(!this.cyBrain) return;
+      const q = this.graphSearch.trim();
+      this.cyBrain.elements().removeClass('dim near');
+      if(!q){ return; }
+      const res = await apiGet(`/search?q=${encodeURIComponent(q)}`);
+      const matched = new Set(res?.matched_node_ids || []);
+      if(!matched.size){ this.cyBrain.elements().addClass('dim'); return; }
+      this.cyBrain.elements().addClass('dim');
+      matched.forEach(id=>{
+        const n = this.cyBrain.getElementById(id);
+        if(n && n.length){ n.removeClass('dim').addClass('near'); }
+      });
+    },
+    toggleKind(kind){
+      this.visibleKinds[kind] = !this.visibleKinds[kind];
+      if(!this.cyBrain) return;
+      this.cyBrain.nodes(`[kind="${kind}"]`).toggleClass('hidden', !this.visibleKinds[kind]);
+    },
+
+    /* ── node detail / causal chain ── */
+    showNodeDetail(node){
+      if(!node) return;
+      this.impactApp = null; this.impacted = [];
+      const kindLabels = {bot:'BOT', app:'APP', incident:'INCIDENT', person:'PERSON', prompt:'LLM PROMPT'};
+      const detail = {
+        kindLabel: kindLabels[node.kind] || node.kind.toUpperCase(),
+        title: node.label,
+        subtitle: '',
+        chain: [],
+      };
+      if(node.kind==='bot'){
+        detail.subtitle = node.intent || `Risk score: ${node.risk ?? '—'}/100`;
+        // chain = incidents on this bot + their resolvers + prompts
+        const incidents = this.kgEdges.filter(e=>e.kind==='had' && e.src===node.id).map(e=>e.dst);
+        incidents.forEach(iid=>{
+          const inc = this.kgNodes.find(n=>n.id===iid);
+          if(inc){
+            detail.chain.push({role:'incident', label:inc.label});
+            const per = this.kgEdges.find(e=>e.kind==='resolved_by' && e.src===iid);
+            if(per){
+              const p = this.kgNodes.find(n=>n.id===per.dst);
+              if(p) detail.chain.push({role:'by', label:p.label + (p.role?' · '+p.role:'')});
+            }
+            const pr = this.kgEdges.find(e=>e.kind==='used' && e.src===iid);
+            if(pr){
+              const p = this.kgNodes.find(n=>n.id===pr.dst);
+              if(p) detail.chain.push({role:'prompt', label:p.label});
+            }
+          }
+        });
+      } else if(node.kind==='incident'){
+        detail.subtitle = `${node.severity || ''} · ${(node.date||'').split('T')[0]}`;
+        const bot = this.kgEdges.find(e=>e.kind==='had' && e.dst===node.id);
+        if(bot){ const b = this.kgNodes.find(n=>n.id===bot.src); if(b) detail.chain.push({role:'bot', label:b.label}); }
+        detail.chain.push({role:'incident', label:node.label});
+        const per = this.kgEdges.find(e=>e.kind==='resolved_by' && e.src===node.id);
+        if(per){ const p = this.kgNodes.find(n=>n.id===per.dst); if(p) detail.chain.push({role:'by', label:p.label + (p.role?' · '+p.role:'')}); }
+        const pr = this.kgEdges.find(e=>e.kind==='used' && e.src===node.id);
+        if(pr){ const p = this.kgNodes.find(n=>n.id===pr.dst); if(p) detail.chain.push({role:'prompt', label:p.label}); }
+      } else if(node.kind==='person'){
+        detail.subtitle = [node.role, node.team].filter(Boolean).join(' · ');
+        const resolved = this.kgEdges.filter(e=>e.kind==='resolved_by' && e.dst===node.id).length;
+        detail.chain.push({role:'resolved', label:`${resolved} incident${resolved===1?'':'s'}`});
+      } else if(node.kind==='prompt'){
+        detail.subtitle = node.when_to_use || '';
+        const uses = this.kgEdges.filter(e=>e.kind==='used' && e.dst===node.id).length;
+        detail.chain.push({role:'used', label:`${uses} time${uses===1?'':'s'} across the estate`});
+      }
+      this.nodeDetail = detail;
+    },
+    clearNodeDetail(){
+      this.nodeDetail = null;
+      if(!this.cyBrain) return;
+      const cy = this.cyBrain;
+      cy.elements().removeClass('dim near');
+      const sZ = cy.zoom(), sP = {...cy.pan()};
+      cy.fit(cy.elements(), 80);
+      if(cy.zoom() > 1.15){ cy.zoom(1.0); cy.center(cy.elements()); }
+      const tZ = cy.zoom(), tP = {...cy.pan()};
+      cy.zoom(sZ); cy.pan(sP);
+      cy.animate({ zoom:tZ, pan:tP, duration:650, easing:'ease-in-out-cubic' });
+    },
+
+    // keep the map small & airy — never blow nodes up to fill the canvas
+    fitAiry(cyArg){
+      const cy = cyArg || this.cy;
+      if(!cy) return;
+      cy.fit(cy.elements(), 80);
+      if(cy.zoom() > 1.15){ cy.zoom(1.0); cy.center(cy.elements()); }
+    },
+    // re-settle the whole graph with motion every time the tab is opened
+    animateOpen(){
+      if(!this.cy) return;
+      const cy = this.cy;
+      cy.stop();
+      cy.elements().removeClass('dim near hot hotcenter');
+      this.impactApp = null; this.impacted = []; this.nodeDetail = null;
+      const lay = cy.layout({ name:'cose', animate:true, animationDuration:1100, animationEasing:'ease-out', idealEdgeLength:150, nodeRepulsion:26000, nodeOverlap:24, gravity:0.06, componentSpacing:110, padding:80, randomize:true, fit:false });
+      lay.one('layoutstop', ()=>this.fitAiry());
+      lay.run();
+    },
+
+    async selectApp(name){
+      this.impactApp = name;
+      const res = await apiGet(`/blast-radius/app/${encodeURIComponent(name)}`);
+      this.impacted = res?.impacted || [];
+      if(!this.cy) return;
+      const cy = this.cy;
+      cy.elements().removeClass('dim near hot hotcenter');
+      cy.elements().addClass('dim');
+      const appNode = cy.getElementById('app:'+name);
+      appNode.removeClass('dim').addClass('hotcenter');
+      this.impacted.forEach(b=>{
+        const n = cy.getElementById(b.id);
+        n.removeClass('dim').addClass('hot');
+        const edge = cy.getElementById(`${b.id}→${name}`);
+        edge.removeClass('dim').addClass('hot');
+      });
+      this.zoomToImpact();
+    },
+    zoomToImpact(){
+      if(!this.cy || !this.impactApp) return;
+      const cy = this.cy;
+      let eles = cy.getElementById('app:'+this.impactApp);
+      this.impacted.forEach(b=>{ eles = eles.union(cy.getElementById(b.id)); });
+      // animate to the subset, but cap the zoom so it never blows up
+      const sZ = cy.zoom(), sP = {...cy.pan()};
+      cy.fit(eles, 120);
+      if(cy.zoom() > 1.6){ cy.zoom(1.5); cy.center(eles); }
+      const tZ = cy.zoom(), tP = {...cy.pan()};
+      cy.zoom(sZ); cy.pan(sP);
+      cy.animate({ zoom:tZ, pan:tP, duration:700, easing:'ease-in-out-cubic' });
+    },
+    clearApp(){
+      this.impactApp = null; this.impacted = [];
+      if(!this.cy) return;
+      const cy = this.cy;
+      cy.elements().removeClass('dim near hot hotcenter');
+      const sZ = cy.zoom(), sP = {...cy.pan()};
+      cy.fit(cy.elements(), 80);
+      if(cy.zoom() > 1.15){ cy.zoom(1.0); cy.center(cy.elements()); }
+      const tZ = cy.zoom(), tP = {...cy.pan()};
+      cy.zoom(sZ); cy.pan(sP);
+      cy.animate({ zoom:tZ, pan:tP, duration:650, easing:'ease-in-out-cubic' });
+    },
+
+    /* ── playbooks ── */
+    get playbookList(){
+      const q = this.playbookSearch.toLowerCase();
+      return this.bots.filter(b=>!q || b.project_name.toLowerCase().includes(q));
+    },
+    get currentPlaybookBot(){ return this.bots.find(b=>b.id===this.playbookBot); },
+    async loadSop(){
+      const bot = this.currentPlaybookBot;
+      if(!bot) return;
+      this.sopLoading = true;
+      const res = await apiGet(`/sop/${bot.id}?reverse=${this.sopReverse}`);
+      const md = res?.markdown || '# Playbook unavailable\n\nThe SOP endpoint returned no data for this bot.';
+      this.sopHtml = marked.parse(md);
+      this.sopLoading = false;
+    },
+
+    /* ── upload (progressive timeline) ── */
+    onFile(e){ this.uploadFile = e.target.files[0]||null; this.uploadResult=null; this.uploadStepIndex=0; },
+    onDrop(e){ this.uploadFile = e.dataTransfer.files[0]||null; this.uploadResult=null; this.uploadStepIndex=0; },
+    wait(ms){ return new Promise(resolve=>setTimeout(resolve, ms)); },
+    async advanceUploadTimeline(stopAt=4){
+      for(let i=this.uploadStepIndex; i<stopAt && this.uploading; i++){
+        await this.wait(520);
+        if(this.uploading) this.uploadStepIndex = i+1;
+      }
+    },
+    async doUpload(){
+      if(!this.uploadFile) return;
+      this.uploading = true; this.uploadResult = null; this.uploadStepIndex = 0;
+      const timeline = this.advanceUploadTimeline(this.uploadSteps.length-1);
+      try{
+        const fd = new FormData(); fd.append('file', this.uploadFile);
+        const r = await fetch('/upload',{method:'POST',body:fd});
+        if(!r.ok) throw 0;
+        this.uploadResult = await r.json();
+        this.uploadStepIndex = this.uploadSteps.length;
+      }catch(e){
+        this.uploadResult = {ok:false, error:'Upload failed. Check the server logs.'};
+        this.uploadStepIndex = Math.max(1, this.uploadStepIndex);
+      }
+      this.uploading = false;
+      await timeline;
+      if (this.uploadResult?.ok) this.init(); // refresh estate on success
+    },
+  };
+}
+
+function appIconURI(name){
+  const c = '#33333c';
+  const g = {
+    // SAP → enterprise database stack
+    'SAP': `<path d="M4 6c0-1.1 2.7-2 6-2s6 .9 6 2-2.7 2-6 2-6-.9-6-2Z" stroke="${c}" stroke-width="1.4"/><path d="M4 6v8c0 1.1 2.7 2 6 2s6-.9 6-2V6" stroke="${c}" stroke-width="1.4"/><path d="M4 10c0 1.1 2.7 2 6 2s6-.9 6-2" stroke="${c}" stroke-width="1.4"/>`,
+    // Excel → grid
+    'Excel': `<rect x="3.5" y="3.5" width="13" height="13" rx="1.5" stroke="${c}" stroke-width="1.4"/><path d="M3.5 8h13M3.5 12h13M8 3.5v13M12 3.5v13" stroke="${c}" stroke-width="1.2"/>`,
+    // Outlook → envelope
+    'Outlook': `<rect x="3" y="5" width="14" height="10" rx="1.5" stroke="${c}" stroke-width="1.4"/><path d="M3.5 6l6.5 5 6.5-5" stroke="${c}" stroke-width="1.4"/>`,
+    // Browser → globe
+    'Browser': `<circle cx="10" cy="10" r="6.5" stroke="${c}" stroke-width="1.4"/><path d="M3.5 10h13M10 3.5c2 2 2 11 0 13M10 3.5c-2 2-2 11 0 13" stroke="${c}" stroke-width="1.2"/>`,
+    // ActiveDirectory → users
+    'ActiveDirectory': `<circle cx="7.5" cy="7" r="2.6" stroke="${c}" stroke-width="1.4"/><path d="M3 16c0-2.5 2-4.2 4.5-4.2S12 13.5 12 16" stroke="${c}" stroke-width="1.4"/><path d="M12.5 5.2A2.4 2.4 0 0 1 14 9.6M13.5 12c2 .4 3.5 2 3.5 4" stroke="${c}" stroke-width="1.3"/>`,
+  };
+  const inner = g[name] || `<circle cx="10" cy="10" r="6" stroke="${c}" stroke-width="1.4"/>`;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none">${inner}</svg>`;
+  return 'data:image/svg+xml;utf8,'+encodeURIComponent(svg);
+}
+
+// bot glyph chosen from the project name / its function
+function botIconURI(bot){
+  const c = '#2c2c34';
+  const n = (bot.project_name||'').toLowerCase();
+  let inner;
+  if(/onboard|hr|hire|provision/.test(n)){            // people
+    inner = `<circle cx="10" cy="7" r="2.8" stroke="${c}" stroke-width="1.5"/><path d="M4.5 16c0-3 2.5-5 5.5-5s5.5 2 5.5 5" stroke="${c}" stroke-width="1.5"/>`;
+  } else if(/invoice|vendor|posting|sap|master/.test(n)){ // receipt/doc
+    inner = `<path d="M5.5 3.5h9v13l-1.5-1-1.5 1-1.5-1-1.5 1-1.5-1-1.5 1v-13Z" stroke="${c}" stroke-width="1.4" stroke-linejoin="round"/><path d="M8 7.5h4M8 10.5h4" stroke="${c}" stroke-width="1.3"/>`;
+  } else if(/excel|reconcil|report|ledger/.test(n)){     // bar chart
+    inner = `<path d="M4 16V4" stroke="${c}" stroke-width="1.4"/><path d="M4 16h12" stroke="${c}" stroke-width="1.4"/><rect x="6.5" y="10" width="2.2" height="4" fill="${c}"/><rect x="10" y="7" width="2.2" height="7" fill="${c}"/><rect x="13.5" y="9" width="2.2" height="5" fill="${c}"/>`;
+  } else if(/email|mail|intake|inbox/.test(n)){          // envelope
+    inner = `<rect x="3.5" y="5.5" width="13" height="9" rx="1.4" stroke="${c}" stroke-width="1.4"/><path d="M4 6.5l6 4.5 6-4.5" stroke="${c}" stroke-width="1.4"/>`;
+  } else if(/util|shared|library|common/.test(n)){        // stacked blocks (library)
+    inner = `<rect x="4" y="4" width="5.5" height="5.5" rx="1" stroke="${c}" stroke-width="1.4"/><rect x="10.5" y="4" width="5.5" height="5.5" rx="1" stroke="${c}" stroke-width="1.4"/><rect x="7.2" y="10.5" width="5.5" height="5.5" rx="1" stroke="${c}" stroke-width="1.4"/>`;
+  } else {                                                // generic bot
+    inner = `<rect x="4.5" y="6.5" width="11" height="8" rx="2" stroke="${c}" stroke-width="1.4"/><path d="M10 3.5v3" stroke="${c}" stroke-width="1.4"/><circle cx="10" cy="3" r="1" fill="${c}"/><circle cx="8" cy="10.5" r="1" fill="${c}"/><circle cx="12" cy="10.5" r="1" fill="${c}"/>`;
+  }
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none">${inner}</svg>`;
+  return 'data:image/svg+xml;utf8,'+encodeURIComponent(svg);
+}
+
+// Dispatcher used by cytoscape — picks the right glyph for each knowledge-graph node.
+function nodeIconURI(node){
+  if(node.kind==='app')      return appIconURI(node.label);
+  if(node.kind==='bot')      return botIconURI({project_name: node.label});
+  if(node.kind==='incident') return incidentGlyph();
+  if(node.kind==='person')   return personGlyph();
+  if(node.kind==='prompt')   return promptGlyph();
+  return botIconURI({project_name: node.label || ''});
+}
+
+function _svgWrap(inner){
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none">${inner}</svg>`;
+  return 'data:image/svg+xml;utf8,'+encodeURIComponent(svg);
+}
+
+function incidentGlyph(){
+  const c = '#a68300';
+  return _svgWrap(`<path d="M10 3.5 17 15.5H3z" stroke="${c}" stroke-width="1.4" stroke-linejoin="round"/><path d="M10 8v3.5" stroke="${c}" stroke-width="1.6" stroke-linecap="round"/><circle cx="10" cy="13.5" r="0.9" fill="${c}"/>`);
+}
+function personGlyph(){
+  const c = '#0369a1';
+  return _svgWrap(`<circle cx="10" cy="7.5" r="2.8" stroke="${c}" stroke-width="1.4"/><path d="M4.5 16.5c0-3 2.5-5 5.5-5s5.5 2 5.5 5" stroke="${c}" stroke-width="1.4"/>`);
+}
+function promptGlyph(){
+  const c = '#4747b8';
+  return _svgWrap(`<path d="M4 4h9a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2H8.5L5 16v-3H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z" stroke="${c}" stroke-width="1.4" stroke-linejoin="round"/><path d="M6.5 7.5h6M6.5 10h4" stroke="${c}" stroke-width="1.3" stroke-linecap="round"/>`);
+}
+
+function svgIcon(k){
+  const s = 'width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"';
+  switch(k){
+    case 'overview': return `<svg ${s}><path d="M2 7.5 7 2l5 5.5"/><path d="M3.5 6.5v5h7v-5"/><path d="M5.5 11.5V8h3v3.5"/></svg>`;
+    case 'advisor': return `<svg ${s}><path d="M7 1.5a4.5 4.5 0 0 1 4.5 4.5c0 1.8-1 2.8-1.8 3.7-.5.6-.7 1.3-.7 1.8h-4c0-.5-.2-1.2-.7-1.8C3.5 8.8 2.5 7.8 2.5 6A4.5 4.5 0 0 1 7 1.5Z"/><path d="M5.5 13h3"/></svg>`;
+    case 'genome': return `<svg ${s}><path d="M3 1.5c0 4 8 7 8 11M11 1.5c0 4-8 7-8 11M3.5 3.5h7M3.5 10.5h7"/></svg>`;
+    case 'impact': return `<svg ${s}><circle cx="7" cy="7" r="1.6"/><circle cx="2.5" cy="3" r="1.1"/><circle cx="11.5" cy="2.8" r="1.1"/><circle cx="11.8" cy="11" r="1.1"/><circle cx="2.8" cy="11.3" r="1.1"/><path d="M5.8 5.9 3.4 3.8M8.2 5.9l2.4-2.2M8.3 8.1l2.6 2.2M5.7 8.2l-2 2.3"/></svg>`;
+    case 'playbooks': return `<svg ${s}><path d="M2 2.5h4.2c.7 0 1.3.6 1.3 1.3V12c0-.7-.6-1.2-1.3-1.2H2V2.5ZM12 2.5H7.8c-.7 0-1.3.6-1.3 1.3V12c0-.7.6-1.2 1.3-1.2H12V2.5Z"/></svg>`;
+    case 'brain': return `<svg ${s}><circle cx="4" cy="4" r="1.3"/><circle cx="10" cy="3" r="1.3"/><circle cx="3.5" cy="10.5" r="1.3"/><circle cx="10.5" cy="10" r="1.3"/><circle cx="7" cy="6.5" r="1.3"/><path d="M4 4l6-1M4 4l3 2.5M10 3l-3 3.5M3.5 10.5l3.5-4M10.5 10 7 6.5M3.5 10.5l7-.5"/></svg>`;
+    case 'studio': return `<svg ${s}><rect x="1.5" y="2.5" width="11" height="9" rx="1.5"/><path d="M8.5 11.5v-9M10 5l1 1-1 1"/></svg>`;
+    default: return '';
+  }
+}
+</script>
+</body>
+</html>

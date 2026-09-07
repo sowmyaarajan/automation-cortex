@@ -1,0 +1,10 @@
+<Activity xmlns="http://schemas.microsoft.com/netfx/2009/xaml/activities"
+          xmlns:ui="http://schemas.uipath.com/workflow/activities">
+  <Sequence DisplayName="Shared: SAP Login">
+    <ui:OpenApplication FileName="saplogon.exe" DisplayName="Launch SAP Logon" />
+    <ui:Click Selector="&lt;wnd app='saplogon.exe' cls='SAP_Frame' title='SAP Logon' /&gt;&lt;list name='sysList' /&gt;" DisplayName="Select System" />
+    <ui:TypeInto Selector="&lt;wnd app='saplogon.exe' cls='SAP_Frame' /&gt;&lt;wnd ctrlname='txtUser' /&gt;" Text="[Credential.Username]" DisplayName="Enter Username" />
+    <ui:TypeInto Selector="&lt;wnd app='saplogon.exe' cls='SAP_Frame' /&gt;&lt;wnd ctrlname='txtPass' /&gt;" Text="[Credential.Password]" DisplayName="Enter Password" IsPassword="True" />
+    <ui:Click Selector="&lt;wnd app='saplogon.exe' cls='SAP_Frame' /&gt;&lt;btn name='Logon' /&gt;" DisplayName="Click Logon" />
+  </Sequence>
+</Activity>

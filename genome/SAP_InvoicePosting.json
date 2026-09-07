@@ -1,0 +1,239 @@
+{
+  "id": "SAP_InvoicePosting::Main.xaml",
+  "project_name": "SAP_InvoicePosting",
+  "project_root": "C:\\Users\\Sowmya.Rajan\\Documents\\FDE\\2026\\Claude_Proj\\Automation_Cortex\\demo\\corpus\\SAP_InvoicePosting",
+  "main_workflow": "Main.xaml",
+  "workflows": [
+    {
+      "file": "Main.xaml",
+      "display_name": "Main",
+      "activity_count": 21
+    },
+    {
+      "file": "Workflows/NotifyAP.xaml",
+      "display_name": "NotifyAP",
+      "activity_count": 3
+    },
+    {
+      "file": "Workflows/SAPLogin.xaml",
+      "display_name": "SAPLogin",
+      "activity_count": 7
+    }
+  ],
+  "capabilities": [
+    "queue_consumer",
+    "sap_posting",
+    "sap_ui_automation",
+    "email_send",
+    "hitl_form_task",
+    "multi_exception_handling"
+  ],
+  "applications": [
+    "Outlook",
+    "SAP"
+  ],
+  "selectors": [
+    {
+      "raw": "<wnd app='saplogon.exe' cls='SAP_Frame' title='SAP Easy Access' /><wnd cls='Edit' />",
+      "app_hint": "SAP",
+      "workflow": "Main.xaml"
+    },
+    {
+      "raw": "<wnd app='saplogon.exe' cls='SAP_Frame' /><btn name='Continue' />",
+      "app_hint": "SAP",
+      "workflow": "Main.xaml"
+    },
+    {
+      "raw": "<wnd app='saplogon.exe' cls='SAP_Frame' /><wnd ctrlname='txtVendor' />",
+      "app_hint": "SAP",
+      "workflow": "Main.xaml"
+    },
+    {
+      "raw": "<wnd app='saplogon.exe' cls='SAP_Frame' /><wnd ctrlname='txtAmount' />",
+      "app_hint": "SAP",
+      "workflow": "Main.xaml"
+    },
+    {
+      "raw": "<wnd app='saplogon.exe' cls='SAP_Frame' /><btn name='Post' />",
+      "app_hint": "SAP",
+      "workflow": "Main.xaml"
+    },
+    {
+      "raw": "<wnd app='saplogon.exe' cls='SAP_Frame' title='SAP Logon' /><list name='sysList' />",
+      "app_hint": "SAP",
+      "workflow": "SAPLogin.xaml"
+    },
+    {
+      "raw": "<wnd app='saplogon.exe' cls='SAP_Frame' /><wnd ctrlname='txtUser' />",
+      "app_hint": "SAP",
+      "workflow": "SAPLogin.xaml"
+    },
+    {
+      "raw": "<wnd app='saplogon.exe' cls='SAP_Frame' /><wnd ctrlname='txtPass' />",
+      "app_hint": "SAP",
+      "workflow": "SAPLogin.xaml"
+    },
+    {
+      "raw": "<wnd app='saplogon.exe' cls='SAP_Frame' /><btn name='Logon' />",
+      "app_hint": "SAP",
+      "workflow": "SAPLogin.xaml"
+    }
+  ],
+  "invoked_workflows": [
+    "Workflows\\NotifyAP.xaml",
+    "Workflows\\SAPLogin.xaml"
+  ],
+  "exceptions_caught": [
+    "ui:BusinessRuleException",
+    "ui:SelectorNotFoundException"
+  ],
+  "retry_blocks": 1,
+  "hitl_nodes": 1,
+  "raw_activities": {
+    "Activity": 3,
+    "Sequence": 4,
+    "GetTransactionItem": 1,
+    "InvokeWorkflowFile": 2,
+    "TryCatch": 1,
+    "TryCatch.Try": 1,
+    "RetryScope": 1,
+    "TypeInto": 5,
+    "Click": 4,
+    "TryCatch.Catches": 1,
+    "Catch": 2,
+    "LogMessage": 2,
+    "CreateFormTask": 1,
+    "SetTransactionStatus": 1,
+    "SendOutlookMail": 1,
+    "OpenApplication": 1
+  },
+  "intent": "Posts vendor invoices from email into SAP by entering transaction data and handling exceptions.",
+  "modality_signals": {
+    "has_ui_automation": true,
+    "has_ai_extraction": false,
+    "has_api_calls": false,
+    "has_hitl": true
+  },
+  "workflow_sequences": {
+    "Main.xaml": [
+      {
+        "activity": "GetTransactionItem",
+        "display_name": "Get Invoice from Queue",
+        "selector": null,
+        "value": "InvoicesToPost"
+      },
+      {
+        "activity": "InvokeWorkflowFile",
+        "display_name": "Login to SAP",
+        "selector": null,
+        "value": "Workflows\\SAPLogin.xaml"
+      },
+      {
+        "activity": "RetryScope",
+        "display_name": "Retry FB60 Entry",
+        "selector": null,
+        "value": null
+      },
+      {
+        "activity": "TypeInto",
+        "display_name": "Open FB60 Transaction",
+        "selector": "<wnd app='saplogon.exe' cls='SAP_Frame' title='SAP Easy Access' /><wnd cls='Edit' />",
+        "value": "/nFB60"
+      },
+      {
+        "activity": "Click",
+        "display_name": "Continue",
+        "selector": "<wnd app='saplogon.exe' cls='SAP_Frame' /><btn name='Continue' />",
+        "value": null
+      },
+      {
+        "activity": "TypeInto",
+        "display_name": "Enter Vendor ID",
+        "selector": "<wnd app='saplogon.exe' cls='SAP_Frame' /><wnd ctrlname='txtVendor' />",
+        "value": "[in_VendorId]"
+      },
+      {
+        "activity": "TypeInto",
+        "display_name": "Enter Amount",
+        "selector": "<wnd app='saplogon.exe' cls='SAP_Frame' /><wnd ctrlname='txtAmount' />",
+        "value": "[in_Amount]"
+      },
+      {
+        "activity": "Click",
+        "display_name": "Post",
+        "selector": "<wnd app='saplogon.exe' cls='SAP_Frame' /><btn name='Post' />",
+        "value": null
+      },
+      {
+        "activity": "LogMessage",
+        "display_name": null,
+        "selector": null,
+        "value": "SAP GUI selector missing - escalating"
+      },
+      {
+        "activity": "CreateFormTask",
+        "display_name": "Human Review",
+        "selector": null,
+        "value": "SAP Invoice Manual Review"
+      },
+      {
+        "activity": "LogMessage",
+        "display_name": null,
+        "selector": null,
+        "value": "Duplicate vendor invoice detected"
+      },
+      {
+        "activity": "SetTransactionStatus",
+        "display_name": null,
+        "selector": null,
+        "value": null
+      },
+      {
+        "activity": "InvokeWorkflowFile",
+        "display_name": "Notify AP Team",
+        "selector": null,
+        "value": "Workflows\\NotifyAP.xaml"
+      }
+    ],
+    "Workflows/NotifyAP.xaml": [
+      {
+        "activity": "SendOutlookMail",
+        "display_name": "Send Confirmation Email",
+        "selector": null,
+        "value": "Invoice Posted"
+      }
+    ],
+    "Workflows/SAPLogin.xaml": [
+      {
+        "activity": "OpenApplication",
+        "display_name": "Launch SAP Logon",
+        "selector": null,
+        "value": "saplogon.exe"
+      },
+      {
+        "activity": "Click",
+        "display_name": "Select System",
+        "selector": "<wnd app='saplogon.exe' cls='SAP_Frame' title='SAP Logon' /><list name='sysList' />",
+        "value": null
+      },
+      {
+        "activity": "TypeInto",
+        "display_name": "Enter Username",
+        "selector": "<wnd app='saplogon.exe' cls='SAP_Frame' /><wnd ctrlname='txtUser' />",
+        "value": "[Credential.Username]"
+      },
+      {
+        "activity": "TypeInto",
+        "display_name": "Enter Password",
+        "selector": "<wnd app='saplogon.exe' cls='SAP_Frame' /><wnd ctrlname='txtPass' />",
+        "value": "[Credential.Password]"
+      },
+      {
+        "activity": "Click",
+        "display_name": "Click Logon",
+        "selector": "<wnd app='saplogon.exe' cls='SAP_Frame' /><btn name='Logon' />",
+        "value": null
+      }
+    ]
+  }
+}

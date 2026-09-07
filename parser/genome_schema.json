@@ -1,0 +1,86 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Automation Genome",
+  "description": "Fingerprint of a single UiPath automation, produced by the static parser and enriched by the LLM extractor.",
+  "type": "object",
+  "required": ["id", "project_name", "workflows", "capabilities", "applications", "selectors", "invoked_workflows", "exceptions_caught", "retry_blocks", "hitl_nodes", "raw_activities"],
+  "properties": {
+    "id": {"type": "string", "description": "Stable id: <project>::<main_workflow>"},
+    "project_name": {"type": "string"},
+    "project_root": {"type": "string"},
+    "main_workflow": {"type": "string"},
+    "workflows": {
+      "type": "array",
+      "description": "All .xaml files in the project",
+      "items": {
+        "type": "object",
+        "required": ["file", "display_name"],
+        "properties": {
+          "file": {"type": "string"},
+          "display_name": {"type": "string"},
+          "activity_count": {"type": "integer"}
+        }
+      }
+    },
+    "capabilities": {
+      "type": "array",
+      "description": "LLM-derived capability tags (e.g. 'invoice_extraction', 'sap_posting', 'email_triage')",
+      "items": {"type": "string"}
+    },
+    "applications": {
+      "type": "array",
+      "description": "Applications touched, derived from selectors + activity types",
+      "items": {"type": "string"}
+    },
+    "selectors": {
+      "type": "array",
+      "description": "Unique selector strings observed. Used for fragility scoring.",
+      "items": {
+        "type": "object",
+        "required": ["raw", "app_hint"],
+        "properties": {
+          "raw": {"type": "string"},
+          "app_hint": {"type": "string"},
+          "workflow": {"type": "string"}
+        }
+      }
+    },
+    "invoked_workflows": {
+      "type": "array",
+      "description": "InvokeWorkflowFile references — the reuse edges",
+      "items": {"type": "string"}
+    },
+    "exceptions_caught": {
+      "type": "array",
+      "description": "Exception types explicitly caught (TryCatch)",
+      "items": {"type": "string"}
+    },
+    "retry_blocks": {
+      "type": "integer",
+      "description": "Count of RetryScope activities"
+    },
+    "hitl_nodes": {
+      "type": "integer",
+      "description": "Count of human-in-the-loop activities (CreateFormTask, ValidateExtractionResults, etc.)"
+    },
+    "raw_activities": {
+      "type": "object",
+      "description": "Histogram: activity type -> count",
+      "additionalProperties": {"type": "integer"}
+    },
+    "intent": {
+      "type": "string",
+      "description": "One-sentence business intent, LLM-derived. Populated in Day 2."
+    },
+    "modality_signals": {
+      "type": "object",
+      "description": "Hints for RPA/AI/API/HITL modality classification. LLM-derived.",
+      "properties": {
+        "has_ui_automation": {"type": "boolean"},
+        "has_ai_extraction": {"type": "boolean"},
+        "has_api_calls": {"type": "boolean"},
+        "has_hitl": {"type": "boolean"}
+      }
+    }
+  }
+}

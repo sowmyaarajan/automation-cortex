@@ -1,0 +1,16 @@
+{
+  "name": "Email_InvoiceIntake",
+  "description": "Monitors AP shared inbox for invoice attachments, extracts data using Document Understanding, and pushes to InvoicesToPost queue.",
+  "main": "Main.xaml",
+  "dependencies": {
+    "UiPath.System.Activities": "[22.10.4]",
+    "UiPath.Mail.Activities": "[1.19.2]",
+    "UiPath.IntelligentOCR.Activities": "[6.15.0]",
+    "UiPath.DocumentUnderstanding.ML.Activities": "[1.15.0]"
+  },
+  "projectVersion": "0.9.1",
+  "runtimeOptions": {"autoDispose": false, "isPausable": true},
+  "designOptions": {"projectProfile": "Development", "outputType": "Process"},
+  "modernBehavior": true,
+  "expressionLanguage": "VisualBasic"
+}

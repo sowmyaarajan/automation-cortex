@@ -1,0 +1,133 @@
+{
+  "id": "Shared_Utilities::SAPLogin.xaml",
+  "project_name": "Shared_Utilities",
+  "project_root": "C:\\Users\\Sowmya.Rajan\\Documents\\FDE\\2026\\Claude_Proj\\Automation_Cortex\\demo\\corpus\\Shared_Utilities",
+  "main_workflow": "SAPLogin.xaml",
+  "workflows": [
+    {
+      "file": "EmailSender.xaml",
+      "display_name": "EmailSender",
+      "activity_count": 3
+    },
+    {
+      "file": "ExcelReader.xaml",
+      "display_name": "ExcelReader",
+      "activity_count": 4
+    },
+    {
+      "file": "SAPLogin.xaml",
+      "display_name": "SAPLogin",
+      "activity_count": 7
+    }
+  ],
+  "capabilities": [
+    "sap_ui_automation",
+    "excel_ingest",
+    "email_send",
+    "library"
+  ],
+  "applications": [
+    "Excel",
+    "Outlook",
+    "SAP"
+  ],
+  "selectors": [
+    {
+      "raw": "<wnd app='saplogon.exe' cls='SAP_Frame' title='SAP Logon' /><list name='sysList' />",
+      "app_hint": "SAP",
+      "workflow": "SAPLogin.xaml"
+    },
+    {
+      "raw": "<wnd app='saplogon.exe' cls='SAP_Frame' /><wnd ctrlname='txtUser' />",
+      "app_hint": "SAP",
+      "workflow": "SAPLogin.xaml"
+    },
+    {
+      "raw": "<wnd app='saplogon.exe' cls='SAP_Frame' /><wnd ctrlname='txtPass' />",
+      "app_hint": "SAP",
+      "workflow": "SAPLogin.xaml"
+    },
+    {
+      "raw": "<wnd app='saplogon.exe' cls='SAP_Frame' /><btn name='Logon' />",
+      "app_hint": "SAP",
+      "workflow": "SAPLogin.xaml"
+    }
+  ],
+  "invoked_workflows": [],
+  "exceptions_caught": [],
+  "retry_blocks": 0,
+  "hitl_nodes": 0,
+  "raw_activities": {
+    "Activity": 3,
+    "Sequence": 3,
+    "SendOutlookMail": 1,
+    "ExcelApplicationScope": 1,
+    "ReadRange": 1,
+    "OpenApplication": 1,
+    "Click": 2,
+    "TypeInto": 2
+  },
+  "intent": "Sends an email via Outlook with data from an Excel file and SAP.",
+  "modality_signals": {
+    "has_ui_automation": true,
+    "has_ai_extraction": false,
+    "has_api_calls": false,
+    "has_hitl": false
+  },
+  "workflow_sequences": {
+    "EmailSender.xaml": [
+      {
+        "activity": "SendOutlookMail",
+        "display_name": "Send Email",
+        "selector": null,
+        "value": "[in_Subject]"
+      }
+    ],
+    "ExcelReader.xaml": [
+      {
+        "activity": "ExcelApplicationScope",
+        "display_name": "Open Workbook",
+        "selector": null,
+        "value": "[in_Path]"
+      },
+      {
+        "activity": "ReadRange",
+        "display_name": "Read Range",
+        "selector": null,
+        "value": "[in_SheetName]"
+      }
+    ],
+    "SAPLogin.xaml": [
+      {
+        "activity": "OpenApplication",
+        "display_name": "Launch SAP Logon",
+        "selector": null,
+        "value": "saplogon.exe"
+      },
+      {
+        "activity": "Click",
+        "display_name": "Select System",
+        "selector": "<wnd app='saplogon.exe' cls='SAP_Frame' title='SAP Logon' /><list name='sysList' />",
+        "value": null
+      },
+      {
+        "activity": "TypeInto",
+        "display_name": "Enter Username",
+        "selector": "<wnd app='saplogon.exe' cls='SAP_Frame' /><wnd ctrlname='txtUser' />",
+        "value": "[Credential.Username]"
+      },
+      {
+        "activity": "TypeInto",
+        "display_name": "Enter Password",
+        "selector": "<wnd app='saplogon.exe' cls='SAP_Frame' /><wnd ctrlname='txtPass' />",
+        "value": "[Credential.Password]"
+      },
+      {
+        "activity": "Click",
+        "display_name": "Click Logon",
+        "selector": "<wnd app='saplogon.exe' cls='SAP_Frame' /><btn name='Logon' />",
+        "value": null
+      }
+    ]
+  }
+}

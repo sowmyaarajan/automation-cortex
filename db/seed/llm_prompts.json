@@ -1,0 +1,30 @@
+[
+  {
+    "id": "sap_selector_regen",
+    "title": "SAP selector regeneration",
+    "when_to_use": "When SAP GUI selector breaks after a patch",
+    "prompt_text": "Given this broken selector and the surrounding XAML, suggest a relaxed selector using role-based attributes that survives the next SAP patch.",
+    "model": "deepseek-chat"
+  },
+  {
+    "id": "ad_relaxed_xpath",
+    "title": "AD portal relaxed xpath",
+    "when_to_use": "When AD portal control ids change",
+    "prompt_text": "Given the portal HTML dump, produce a webctrl selector that tolerates id renames using aaname and stable attributes only.",
+    "model": "deepseek-chat"
+  },
+  {
+    "id": "du_train_suggest",
+    "title": "DU classifier training suggestion",
+    "when_to_use": "When Document Understanding confidence drops below 0.7",
+    "prompt_text": "Given the misclassified document and the current classifier's labels, suggest the smallest training sample that fixes this class without regressing others.",
+    "model": "deepseek-chat"
+  },
+  {
+    "id": "retry_tune",
+    "title": "Retry-interval tuning",
+    "when_to_use": "When retry loops exhaust during month-end or peak load",
+    "prompt_text": "Given the RetryScope config and the exception pattern, suggest a calendar-driven retry interval that stays within SLA.",
+    "model": "deepseek-chat"
+  }
+]

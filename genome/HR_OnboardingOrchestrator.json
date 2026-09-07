@@ -1,0 +1,162 @@
+{
+  "id": "HR_OnboardingOrchestrator::Main.xaml",
+  "project_name": "HR_OnboardingOrchestrator",
+  "project_root": "C:\\Users\\Sowmya.Rajan\\Documents\\FDE\\2026\\Claude_Proj\\Automation_Cortex\\demo\\corpus\\HR_OnboardingOrchestrator",
+  "main_workflow": "Main.xaml",
+  "workflows": [
+    {
+      "file": "Main.xaml",
+      "display_name": "Main",
+      "activity_count": 24
+    }
+  ],
+  "capabilities": [
+    "queue_producer",
+    "queue_consumer",
+    "hitl_form_task",
+    "hitl_approval_gate",
+    "browser_automation",
+    "ad_provisioning"
+  ],
+  "applications": [
+    "ActiveDirectory",
+    "Browser",
+    "Excel"
+  ],
+  "selectors": [
+    {
+      "raw": "<webctrl id='firstName' tag='INPUT' />",
+      "app_hint": "Browser",
+      "workflow": "Main.xaml"
+    },
+    {
+      "raw": "<webctrl id='lastName' tag='INPUT' />",
+      "app_hint": "Browser",
+      "workflow": "Main.xaml"
+    },
+    {
+      "raw": "<webctrl id='createBtn' tag='BUTTON' />",
+      "app_hint": "Browser",
+      "workflow": "Main.xaml"
+    }
+  ],
+  "invoked_workflows": [
+    "..\\Shared_Utilities\\EmailSender.xaml",
+    "..\\Shared_Utilities\\ExcelReader.xaml"
+  ],
+  "exceptions_caught": [
+    "ui:SelectorNotFoundException"
+  ],
+  "retry_blocks": 1,
+  "hitl_nodes": 3,
+  "raw_activities": {
+    "Activity": 1,
+    "Sequence": 3,
+    "GetTransactionItem": 1,
+    "InvokeWorkflowFile": 2,
+    "CreateFormTask": 2,
+    "WaitForFormTaskAndResume": 1,
+    "If": 1,
+    "If.Then": 1,
+    "TryCatch": 1,
+    "TryCatch.Try": 1,
+    "RetryScope": 1,
+    "OpenBrowser": 1,
+    "TypeInto": 2,
+    "Click": 1,
+    "TryCatch.Catches": 1,
+    "Catch": 1,
+    "AddQueueItem": 1,
+    "If.Else": 1,
+    "LogMessage": 1
+  },
+  "intent": "Creates Active Directory accounts and processes HR approvals for new hires using data from an Excel template.",
+  "modality_signals": {
+    "has_ui_automation": true,
+    "has_ai_extraction": false,
+    "has_api_calls": false,
+    "has_hitl": true
+  },
+  "workflow_sequences": {
+    "Main.xaml": [
+      {
+        "activity": "GetTransactionItem",
+        "display_name": "Get New Hire from Queue",
+        "selector": null,
+        "value": "NewHires"
+      },
+      {
+        "activity": "InvokeWorkflowFile",
+        "display_name": "Read Onboarding Template",
+        "selector": null,
+        "value": "..\\Shared_Utilities\\ExcelReader.xaml"
+      },
+      {
+        "activity": "CreateFormTask",
+        "display_name": "HR Approval Gate",
+        "selector": null,
+        "value": "Approve New Hire AD Account"
+      },
+      {
+        "activity": "WaitForFormTaskAndResume",
+        "display_name": "Wait for Approval",
+        "selector": null,
+        "value": null
+      },
+      {
+        "activity": "RetryScope",
+        "display_name": "Retry AD Creation",
+        "selector": null,
+        "value": null
+      },
+      {
+        "activity": "OpenBrowser",
+        "display_name": "Open AD Portal",
+        "selector": null,
+        "value": "https://ad.contoso.com/users/new"
+      },
+      {
+        "activity": "TypeInto",
+        "display_name": "First Name",
+        "selector": "<webctrl id='firstName' tag='INPUT' />",
+        "value": "[in_FirstName]"
+      },
+      {
+        "activity": "TypeInto",
+        "display_name": "Last Name",
+        "selector": "<webctrl id='lastName' tag='INPUT' />",
+        "value": "[in_LastName]"
+      },
+      {
+        "activity": "Click",
+        "display_name": "Create Account",
+        "selector": "<webctrl id='createBtn' tag='BUTTON' />",
+        "value": null
+      },
+      {
+        "activity": "CreateFormTask",
+        "display_name": "Escalate",
+        "selector": null,
+        "value": "AD Portal Unavailable - Manual Creation"
+      },
+      {
+        "activity": "InvokeWorkflowFile",
+        "display_name": "Notify Manager",
+        "selector": null,
+        "value": "..\\Shared_Utilities\\EmailSender.xaml"
+      },
+      {
+        "activity": "AddQueueItem",
+        "display_name": "Push Laptop Request",
+        "selector": null,
+        "value": "LaptopRequests"
+      },
+      {
+        "activity": "LogMessage",
+        "display_name": null,
+        "selector": null,
+        "value": "Onboarding rejected by HR"
+      }
+    ]
+  }
+}

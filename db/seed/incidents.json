@@ -1,0 +1,47 @@
+[
+  {
+    "automation": "SAP_InvoicePosting::Main.xaml",
+    "occurred_at": "2026-07-02T14:22:00Z",
+    "kind": "selector_change",
+    "summary": "FB60 'Post' button selector broke after SAP hotpatch — retry loop exhausted 3 attempts before human takeover.",
+    "fix_ref": "SAP_selector_regenerate",
+    "resolved_by": "john",
+    "prompt_id": "sap_selector_regen"
+  },
+  {
+    "automation": "SAP_InvoicePosting::Main.xaml",
+    "occurred_at": "2026-06-28T09:11:00Z",
+    "kind": "exception",
+    "summary": "BusinessRuleException: duplicate vendor invoice flagged, correctly escalated.",
+    "fix_ref": "duplicate_reroute_to_review",
+    "resolved_by": "priya",
+    "prompt_id": null
+  },
+  {
+    "automation": "HR_OnboardingOrchestrator::Main.xaml",
+    "occurred_at": "2026-07-05T11:47:00Z",
+    "kind": "selector_change",
+    "summary": "AD portal webctrl id='createBtn' renamed to 'submitBtn'; automation stalled at retry #2, escalated to IT.",
+    "fix_ref": "AD_selector_relaxed_xpath",
+    "resolved_by": "alex",
+    "prompt_id": "ad_relaxed_xpath"
+  },
+  {
+    "automation": "Email_InvoiceIntake::Main.xaml",
+    "occurred_at": "2026-07-06T04:03:00Z",
+    "kind": "data_quality",
+    "summary": "DU classifier confidence dropped below 0.7 on a new vendor invoice format; routed to Validation Station.",
+    "fix_ref": "DU_add_training_sample",
+    "resolved_by": "mira",
+    "prompt_id": "du_train_suggest"
+  },
+  {
+    "automation": "SAP_VendorMaster::Main.xaml",
+    "occurred_at": "2026-06-30T02:15:00Z",
+    "kind": "timeout",
+    "summary": "SAP GUI slow at month-end batch; retry succeeded on attempt 2.",
+    "fix_ref": "SAP_extend_retry_interval",
+    "resolved_by": "john",
+    "prompt_id": "retry_tune"
+  }
+]

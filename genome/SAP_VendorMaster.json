@@ -1,0 +1,210 @@
+{
+  "id": "SAP_VendorMaster::Main.xaml",
+  "project_name": "SAP_VendorMaster",
+  "project_root": "C:\\Users\\Sowmya.Rajan\\Documents\\FDE\\2026\\Claude_Proj\\Automation_Cortex\\demo\\corpus\\SAP_VendorMaster",
+  "main_workflow": "Main.xaml",
+  "workflows": [
+    {
+      "file": "Main.xaml",
+      "display_name": "Main",
+      "activity_count": 20
+    },
+    {
+      "file": "Workflows/SAPLogin.xaml",
+      "display_name": "SAPLogin",
+      "activity_count": 7
+    }
+  ],
+  "capabilities": [
+    "sap_vendor_master",
+    "sap_ui_automation",
+    "excel_ingest",
+    "multi_exception_handling"
+  ],
+  "applications": [
+    "Excel",
+    "SAP"
+  ],
+  "selectors": [
+    {
+      "raw": "<wnd app='saplogon.exe' cls='SAP_Frame' title='SAP Easy Access' /><wnd cls='Edit' />",
+      "app_hint": "SAP",
+      "workflow": "Main.xaml"
+    },
+    {
+      "raw": "<wnd app='saplogon.exe' cls='SAP_Frame' /><wnd ctrlname='txtVendor' />",
+      "app_hint": "SAP",
+      "workflow": "Main.xaml"
+    },
+    {
+      "raw": "<wnd app='saplogon.exe' cls='SAP_Frame' /><btn name='Continue' />",
+      "app_hint": "SAP",
+      "workflow": "Main.xaml"
+    },
+    {
+      "raw": "<wnd app='saplogon.exe' cls='SAP_Frame' /><wnd ctrlname='txtPaymentTerms' />",
+      "app_hint": "SAP",
+      "workflow": "Main.xaml"
+    },
+    {
+      "raw": "<wnd app='saplogon.exe' cls='SAP_Frame' /><btn name='Save' />",
+      "app_hint": "SAP",
+      "workflow": "Main.xaml"
+    },
+    {
+      "raw": "<wnd app='saplogon.exe' cls='SAP_Frame' title='SAP Logon' /><list name='sysList' />",
+      "app_hint": "SAP",
+      "workflow": "SAPLogin.xaml"
+    },
+    {
+      "raw": "<wnd app='saplogon.exe' cls='SAP_Frame' /><wnd ctrlname='txtUser' />",
+      "app_hint": "SAP",
+      "workflow": "SAPLogin.xaml"
+    },
+    {
+      "raw": "<wnd app='saplogon.exe' cls='SAP_Frame' /><wnd ctrlname='txtPass' />",
+      "app_hint": "SAP",
+      "workflow": "SAPLogin.xaml"
+    },
+    {
+      "raw": "<wnd app='saplogon.exe' cls='SAP_Frame' /><btn name='Logon' />",
+      "app_hint": "SAP",
+      "workflow": "SAPLogin.xaml"
+    }
+  ],
+  "invoked_workflows": [
+    "Workflows\\SAPLogin.xaml"
+  ],
+  "exceptions_caught": [
+    "System.Exception",
+    "ui:SelectorNotFoundException"
+  ],
+  "retry_blocks": 1,
+  "hitl_nodes": 0,
+  "raw_activities": {
+    "Activity": 2,
+    "Sequence": 3,
+    "ExcelApplicationScope": 1,
+    "ReadRange": 1,
+    "InvokeWorkflowFile": 1,
+    "ForEachRow": 1,
+    "TryCatch": 1,
+    "TryCatch.Try": 1,
+    "RetryScope": 1,
+    "TypeInto": 5,
+    "Click": 4,
+    "TryCatch.Catches": 1,
+    "Catch": 2,
+    "LogMessage": 2,
+    "OpenApplication": 1
+  },
+  "intent": "Creates or updates vendor records in SAP by entering data from an Excel file.",
+  "modality_signals": {
+    "has_ui_automation": true,
+    "has_ai_extraction": false,
+    "has_api_calls": false,
+    "has_hitl": false
+  },
+  "workflow_sequences": {
+    "Main.xaml": [
+      {
+        "activity": "ExcelApplicationScope",
+        "display_name": "Open Vendor Excel",
+        "selector": null,
+        "value": "Input\\VendorUpdates.xlsx"
+      },
+      {
+        "activity": "ReadRange",
+        "display_name": "Read Vendor Rows",
+        "selector": null,
+        "value": "Updates"
+      },
+      {
+        "activity": "InvokeWorkflowFile",
+        "display_name": "Login to SAP",
+        "selector": null,
+        "value": "Workflows\\SAPLogin.xaml"
+      },
+      {
+        "activity": "RetryScope",
+        "display_name": "Retry XK02",
+        "selector": null,
+        "value": null
+      },
+      {
+        "activity": "TypeInto",
+        "display_name": "Open XK02",
+        "selector": "<wnd app='saplogon.exe' cls='SAP_Frame' title='SAP Easy Access' /><wnd cls='Edit' />",
+        "value": "/nXK02"
+      },
+      {
+        "activity": "TypeInto",
+        "display_name": "Enter Vendor ID",
+        "selector": "<wnd app='saplogon.exe' cls='SAP_Frame' /><wnd ctrlname='txtVendor' />",
+        "value": "[CurrentRow(\"VendorId\")]"
+      },
+      {
+        "activity": "Click",
+        "display_name": "Continue",
+        "selector": "<wnd app='saplogon.exe' cls='SAP_Frame' /><btn name='Continue' />",
+        "value": null
+      },
+      {
+        "activity": "TypeInto",
+        "display_name": "Update Payment Terms",
+        "selector": "<wnd app='saplogon.exe' cls='SAP_Frame' /><wnd ctrlname='txtPaymentTerms' />",
+        "value": "[CurrentRow(\"PaymentTerms\")]"
+      },
+      {
+        "activity": "Click",
+        "display_name": "Save",
+        "selector": "<wnd app='saplogon.exe' cls='SAP_Frame' /><btn name='Save' />",
+        "value": null
+      },
+      {
+        "activity": "LogMessage",
+        "display_name": null,
+        "selector": null,
+        "value": "SAP selector missing for vendor row"
+      },
+      {
+        "activity": "LogMessage",
+        "display_name": null,
+        "selector": null,
+        "value": "Row failed"
+      }
+    ],
+    "Workflows/SAPLogin.xaml": [
+      {
+        "activity": "OpenApplication",
+        "display_name": "Launch SAP Logon",
+        "selector": null,
+        "value": "saplogon.exe"
+      },
+      {
+        "activity": "Click",
+        "display_name": "Select System",
+        "selector": "<wnd app='saplogon.exe' cls='SAP_Frame' title='SAP Logon' /><list name='sysList' />",
+        "value": null
+      },
+      {
+        "activity": "TypeInto",
+        "display_name": "Enter Username",
+        "selector": "<wnd app='saplogon.exe' cls='SAP_Frame' /><wnd ctrlname='txtUser' />",
+        "value": "[Credential.Username]"
+      },
+      {
+        "activity": "TypeInto",
+        "display_name": "Enter Password",
+        "selector": "<wnd app='saplogon.exe' cls='SAP_Frame' /><wnd ctrlname='txtPass' />",
+        "value": "[Credential.Password]"
+      },
+      {
+        "activity": "Click",
+        "display_name": "Click Logon",
+        "selector": "<wnd app='saplogon.exe' cls='SAP_Frame' /><btn name='Logon' />",
+        "value": null
+      }
+    ]
+  }
+}

@@ -1,0 +1,28 @@
+<Activity xmlns="http://schemas.microsoft.com/netfx/2009/xaml/activities"
+          xmlns:ui="http://schemas.uipath.com/workflow/activities"
+          xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <Sequence DisplayName="Monthly Reconciliation - Main">
+    <ui:ExcelApplicationScope WorkbookPath="Input\SAP_GL_Export.xlsx" DisplayName="Open SAP GL Export">
+      <ui:ReadRange SheetName="GL" DisplayName="Read GL Data" />
+    </ui:ExcelApplicationScope>
+    <ui:ExcelApplicationScope WorkbookPath="Input\Budget.xlsx" DisplayName="Open Budget">
+      <ui:ReadRange SheetName="Budget" DisplayName="Read Budget" />
+    </ui:ExcelApplicationScope>
+    <ui:InvokeCode Language="VisualBasic" DisplayName="Compute Discrepancies" />
+    <TryCatch DisplayName="Write Output + Notify">
+      <TryCatch.Try>
+        <Sequence>
+          <ui:ExcelApplicationScope WorkbookPath="Output\Discrepancies.xlsx" DisplayName="Write Discrepancies">
+            <ui:WriteRange SheetName="Findings" DisplayName="Write Findings" />
+          </ui:ExcelApplicationScope>
+          <ui:SendOutlookMail Subject="Monthly Reconciliation - [DateTime.Now.ToString(&quot;MMM yyyy&quot;)]" To="controllers@contoso.com" Attachments="Output\Discrepancies.xlsx" DisplayName="Email Controllers" />
+        </Sequence>
+      </TryCatch.Try>
+      <TryCatch.Catches>
+        <Catch x:TypeArguments="System.IO.IOException" DisplayName="Handle file lock">
+          <ui:LogMessage Message="Output file locked - retrying next run" Level="Warn" />
+        </Catch>
+      </TryCatch.Catches>
+    </TryCatch>
+  </Sequence>
+</Activity>

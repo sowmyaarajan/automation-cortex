@@ -1,0 +1,16 @@
+{
+  "name": "HR_OnboardingOrchestrator",
+  "description": "Orchestrates new-hire onboarding: creates AD account, provisions Workday record, requests laptop, notifies manager. HITL approval gate before AD creation.",
+  "main": "Main.xaml",
+  "dependencies": {
+    "UiPath.System.Activities": "[22.10.4]",
+    "UiPath.Mail.Activities": "[1.19.2]",
+    "UiPath.UIAutomation.Activities": "[22.10.7]",
+    "UiPath.Persistence.Activities": "[1.4.4]"
+  },
+  "projectVersion": "0.6.0",
+  "runtimeOptions": {"autoDispose": false, "isPausable": true},
+  "designOptions": {"projectProfile": "Development", "outputType": "Process"},
+  "modernBehavior": true,
+  "expressionLanguage": "VisualBasic"
+}

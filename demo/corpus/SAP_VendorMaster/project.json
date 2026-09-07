@@ -1,0 +1,15 @@
+{
+  "name": "SAP_VendorMaster",
+  "description": "Bulk-updates SAP vendor master records (XK02) from an Excel input file. Overlaps significantly with SAP_InvoicePosting on SAP login and vendor selectors.",
+  "main": "Main.xaml",
+  "dependencies": {
+    "UiPath.System.Activities": "[22.10.4]",
+    "UiPath.UIAutomation.Activities": "[22.10.7]",
+    "UiPath.Excel.Activities": "[2.19.4]"
+  },
+  "projectVersion": "1.2.0",
+  "runtimeOptions": {"autoDispose": false, "isPausable": true},
+  "designOptions": {"projectProfile": "Development", "outputType": "Process"},
+  "modernBehavior": true,
+  "expressionLanguage": "VisualBasic"
+}

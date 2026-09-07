@@ -1,0 +1,32 @@
+<Activity xmlns="http://schemas.microsoft.com/netfx/2009/xaml/activities"
+          xmlns:ui="http://schemas.uipath.com/workflow/activities"
+          xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <Sequence DisplayName="SAP Invoice Posting - Main">
+    <ui:GetTransactionItem QueueName="InvoicesToPost" DisplayName="Get Invoice from Queue" />
+    <ui:InvokeWorkflowFile WorkflowFileName="Workflows\SAPLogin.xaml" DisplayName="Login to SAP" />
+    <TryCatch DisplayName="Post Invoice with Recovery">
+      <TryCatch.Try>
+        <ui:RetryScope NumberOfRetries="3" RetryInterval="00:00:30" DisplayName="Retry FB60 Entry">
+          <Sequence>
+            <ui:TypeInto Selector="&lt;wnd app='saplogon.exe' cls='SAP_Frame' title='SAP Easy Access' /&gt;&lt;wnd cls='Edit' /&gt;" Text="/nFB60" DisplayName="Open FB60 Transaction" />
+            <ui:Click Selector="&lt;wnd app='saplogon.exe' cls='SAP_Frame' /&gt;&lt;btn name='Continue' /&gt;" DisplayName="Continue" />
+            <ui:TypeInto Selector="&lt;wnd app='saplogon.exe' cls='SAP_Frame' /&gt;&lt;wnd ctrlname='txtVendor' /&gt;" Text="[in_VendorId]" DisplayName="Enter Vendor ID" />
+            <ui:TypeInto Selector="&lt;wnd app='saplogon.exe' cls='SAP_Frame' /&gt;&lt;wnd ctrlname='txtAmount' /&gt;" Text="[in_Amount]" DisplayName="Enter Amount" />
+            <ui:Click Selector="&lt;wnd app='saplogon.exe' cls='SAP_Frame' /&gt;&lt;btn name='Post' /&gt;" DisplayName="Post" />
+          </Sequence>
+        </ui:RetryScope>
+      </TryCatch.Try>
+      <TryCatch.Catches>
+        <Catch x:TypeArguments="ui:SelectorNotFoundException" DisplayName="Handle SAP unresponsive">
+          <ui:LogMessage Message="SAP GUI selector missing - escalating" Level="Error" />
+          <ui:CreateFormTask FormTitle="SAP Invoice Manual Review" DisplayName="Human Review" />
+        </Catch>
+        <Catch x:TypeArguments="ui:BusinessRuleException" DisplayName="Handle duplicate">
+          <ui:LogMessage Message="Duplicate vendor invoice detected" Level="Warn" />
+          <ui:SetTransactionStatus Status="BusinessException" />
+        </Catch>
+      </TryCatch.Catches>
+    </TryCatch>
+    <ui:InvokeWorkflowFile WorkflowFileName="Workflows\NotifyAP.xaml" DisplayName="Notify AP Team" />
+  </Sequence>
+</Activity>

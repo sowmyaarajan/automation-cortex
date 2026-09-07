@@ -1,0 +1,108 @@
+{
+  "id": "Excel_MonthlyReconciliation::Main.xaml",
+  "project_name": "Excel_MonthlyReconciliation",
+  "project_root": "C:\\Users\\Sowmya.Rajan\\Documents\\FDE\\2026\\Claude_Proj\\Automation_Cortex\\demo\\corpus\\Excel_MonthlyReconciliation",
+  "main_workflow": "Main.xaml",
+  "workflows": [
+    {
+      "file": "Main.xaml",
+      "display_name": "Main",
+      "activity_count": 16
+    }
+  ],
+  "capabilities": [
+    "excel_ingest",
+    "excel_output",
+    "email_send"
+  ],
+  "applications": [
+    "Excel",
+    "Outlook"
+  ],
+  "selectors": [],
+  "invoked_workflows": [],
+  "exceptions_caught": [
+    "System.IO.IOException"
+  ],
+  "retry_blocks": 0,
+  "hitl_nodes": 0,
+  "raw_activities": {
+    "Activity": 1,
+    "Sequence": 2,
+    "ExcelApplicationScope": 3,
+    "ReadRange": 2,
+    "InvokeCode": 1,
+    "TryCatch": 1,
+    "TryCatch.Try": 1,
+    "WriteRange": 1,
+    "SendOutlookMail": 1,
+    "TryCatch.Catches": 1,
+    "Catch": 1,
+    "LogMessage": 1
+  },
+  "intent": "Compares SAP general ledger data with budget figures in Excel to identify and report discrepancies.",
+  "modality_signals": {
+    "has_ui_automation": false,
+    "has_ai_extraction": false,
+    "has_api_calls": false,
+    "has_hitl": false
+  },
+  "workflow_sequences": {
+    "Main.xaml": [
+      {
+        "activity": "ExcelApplicationScope",
+        "display_name": "Open SAP GL Export",
+        "selector": null,
+        "value": "Input\\SAP_GL_Export.xlsx"
+      },
+      {
+        "activity": "ReadRange",
+        "display_name": "Read GL Data",
+        "selector": null,
+        "value": "GL"
+      },
+      {
+        "activity": "ExcelApplicationScope",
+        "display_name": "Open Budget",
+        "selector": null,
+        "value": "Input\\Budget.xlsx"
+      },
+      {
+        "activity": "ReadRange",
+        "display_name": "Read Budget",
+        "selector": null,
+        "value": "Budget"
+      },
+      {
+        "activity": "InvokeCode",
+        "display_name": "Compute Discrepancies",
+        "selector": null,
+        "value": null
+      },
+      {
+        "activity": "ExcelApplicationScope",
+        "display_name": "Write Discrepancies",
+        "selector": null,
+        "value": "Output\\Discrepancies.xlsx"
+      },
+      {
+        "activity": "WriteRange",
+        "display_name": "Write Findings",
+        "selector": null,
+        "value": "Findings"
+      },
+      {
+        "activity": "SendOutlookMail",
+        "display_name": "Email Controllers",
+        "selector": null,
+        "value": "Monthly Reconciliation - [DateTime.Now.ToString(\"MMM yyyy\")]"
+      },
+      {
+        "activity": "LogMessage",
+        "display_name": null,
+        "selector": null,
+        "value": "Output file locked - retrying next run"
+      }
+    ]
+  }
+}

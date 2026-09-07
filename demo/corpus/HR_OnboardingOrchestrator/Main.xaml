@@ -1,0 +1,38 @@
+<Activity xmlns="http://schemas.microsoft.com/netfx/2009/xaml/activities"
+          xmlns:ui="http://schemas.uipath.com/workflow/activities"
+          xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <Sequence DisplayName="HR Onboarding Orchestrator - Main">
+    <ui:GetTransactionItem QueueName="NewHires" DisplayName="Get New Hire from Queue" />
+    <ui:InvokeWorkflowFile WorkflowFileName="..\Shared_Utilities\ExcelReader.xaml" DisplayName="Read Onboarding Template" />
+    <ui:CreateFormTask FormTitle="Approve New Hire AD Account" FormLayout="Approval" DisplayName="HR Approval Gate" />
+    <ui:WaitForFormTaskAndResume DisplayName="Wait for Approval" />
+    <If Condition="[approvalStatus = &quot;Approved&quot;]" DisplayName="If Approved">
+      <If.Then>
+        <Sequence>
+          <TryCatch DisplayName="Provision AD">
+            <TryCatch.Try>
+              <ui:RetryScope NumberOfRetries="3" RetryInterval="00:01:00" DisplayName="Retry AD Creation">
+                <Sequence>
+                  <ui:OpenBrowser Url="https://ad.contoso.com/users/new" DisplayName="Open AD Portal" />
+                  <ui:TypeInto Selector="&lt;webctrl id='firstName' tag='INPUT' /&gt;" Text="[in_FirstName]" DisplayName="First Name" />
+                  <ui:TypeInto Selector="&lt;webctrl id='lastName' tag='INPUT' /&gt;" Text="[in_LastName]" DisplayName="Last Name" />
+                  <ui:Click Selector="&lt;webctrl id='createBtn' tag='BUTTON' /&gt;" DisplayName="Create Account" />
+                </Sequence>
+              </ui:RetryScope>
+            </TryCatch.Try>
+            <TryCatch.Catches>
+              <Catch x:TypeArguments="ui:SelectorNotFoundException" DisplayName="AD Portal down">
+                <ui:CreateFormTask FormTitle="AD Portal Unavailable - Manual Creation" DisplayName="Escalate" />
+              </Catch>
+            </TryCatch.Catches>
+          </TryCatch>
+          <ui:InvokeWorkflowFile WorkflowFileName="..\Shared_Utilities\EmailSender.xaml" DisplayName="Notify Manager" />
+          <ui:AddQueueItem QueueName="LaptopRequests" DisplayName="Push Laptop Request" />
+        </Sequence>
+      </If.Then>
+      <If.Else>
+        <ui:LogMessage Message="Onboarding rejected by HR" Level="Warn" />
+      </If.Else>
+    </If>
+  </Sequence>
+</Activity>

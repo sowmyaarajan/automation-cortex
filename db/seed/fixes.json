@@ -1,0 +1,42 @@
+[
+  {
+    "ref": "SAP_selector_regenerate",
+    "incident_kind": "selector_change",
+    "applies_to_app": "SAP",
+    "remediation": "Re-record the FB60 'Post' button using UiExplorer with role='button' selector fallback. Ship as Shared_Utilities.SAPPostButton wrapper.",
+    "success_count": 3,
+    "last_applied": "2026-07-02T15:00:00Z"
+  },
+  {
+    "ref": "duplicate_reroute_to_review",
+    "incident_kind": "exception",
+    "applies_to_app": "SAP",
+    "remediation": "Catch BusinessRuleException and route to Action Center review queue rather than failing the transaction. Already implemented.",
+    "success_count": 12,
+    "last_applied": "2026-07-07T09:00:00Z"
+  },
+  {
+    "ref": "AD_selector_relaxed_xpath",
+    "incident_kind": "selector_change",
+    "applies_to_app": "ActiveDirectory",
+    "remediation": "Switch to relaxed selector: <webctrl tag='BUTTON' aaname='Create*' />. Reduces breakage on portal renames.",
+    "success_count": 2,
+    "last_applied": "2026-07-05T12:30:00Z"
+  },
+  {
+    "ref": "DU_add_training_sample",
+    "incident_kind": "data_quality",
+    "applies_to_app": "DocumentUnderstanding",
+    "remediation": "Add the misclassified vendor invoice to the ML training set; retrain classifier weekly.",
+    "success_count": 7,
+    "last_applied": "2026-07-06T08:00:00Z"
+  },
+  {
+    "ref": "SAP_extend_retry_interval",
+    "incident_kind": "timeout",
+    "applies_to_app": "SAP",
+    "remediation": "Bump RetryScope interval from 15s to 45s during month-end window (calendar-driven).",
+    "success_count": 4,
+    "last_applied": "2026-06-30T02:16:00Z"
+  }
+]

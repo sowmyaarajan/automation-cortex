@@ -1,0 +1,15 @@
+{
+  "name": "Shared_Utilities",
+  "description": "Reusable library of common utilities: SAP login, Excel reader, email sender. Should be adopted by other projects to eliminate duplicates.",
+  "main": "SAPLogin.xaml",
+  "dependencies": {
+    "UiPath.System.Activities": "[22.10.4]",
+    "UiPath.UIAutomation.Activities": "[22.10.7]",
+    "UiPath.Excel.Activities": "[2.19.4]",
+    "UiPath.Mail.Activities": "[1.19.2]"
+  },
+  "projectVersion": "1.5.2",
+  "designOptions": {"projectProfile": "Library", "outputType": "Library"},
+  "modernBehavior": true,
+  "expressionLanguage": "VisualBasic"
+}

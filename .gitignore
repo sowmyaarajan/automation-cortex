@@ -1,0 +1,21 @@
+.env
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+db/cortex.sqlite
+
+# --- Security hardening: never publish archives or env files ---
+# Automation_Cortex.zip contained a live .env; zips bypass the .env rule above.
+*.zip
+.env
+.env.*
+!.env.example
+*.sqlite
+*.db
+.claude/
+.playwright-mcp/
+
+# Duplicate teammate copy of the whole project (carries its own .env)
+_teammate_new/

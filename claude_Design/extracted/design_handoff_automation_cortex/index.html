@@ -1,0 +1,1035 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Automation Cortex</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/cytoscape@3.28.1/dist/cytoscape.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      fontFamily: {
+        sans: ['Geist', 'system-ui', 'sans-serif'],
+        mono: ['"Geist Mono"', 'ui-monospace', 'monospace'],
+      },
+      colors: {
+        ink: { 900:'#111113', 700:'#37373c', 500:'#6f6f78', 400:'#8b8b94', 300:'#b4b4bc' },
+        line: '#e7e7ea',
+        paper: '#fafafa',
+        accent: { DEFAULT:'#5b5bd6', soft:'#eeeefc', dark:'#4747b8' },
+        graph: { bg:'#1c1c22', panel:'#242430', line:'#2a2a32' },
+      },
+    }
+  }
+}
+</script>
+<style>
+  [x-cloak]{display:none!important}
+  html{font-feature-settings:"cv11","ss01";}
+  body{background:#fafafa;color:#111113;}
+  ::selection{background:#5b5bd6;color:#fff}
+  .focus-ring:focus-visible{outline:2px solid #5b5bd6;outline-offset:2px;border-radius:6px}
+  input:focus-visible,button:focus-visible,textarea:focus-visible,[tabindex]:focus-visible{outline:2px solid #5b5bd6;outline-offset:2px}
+  /* thin scrollbars */
+  .thin-scroll::-webkit-scrollbar{width:6px;height:6px}
+  .thin-scroll::-webkit-scrollbar-thumb{background:#d4d4d8;border-radius:3px}
+  .dark-scroll::-webkit-scrollbar{width:6px}
+  .dark-scroll::-webkit-scrollbar-thumb{background:#33333c;border-radius:3px}
+  /* markdown doc */
+  .doc{font-size:14.5px;line-height:1.7;color:#37373c}
+  .doc h1{font-size:22px;font-weight:650;color:#111113;margin:0 0 14px;letter-spacing:-0.01em}
+  .doc h2{font-size:15px;font-weight:600;color:#111113;margin:28px 0 10px;padding-top:18px;border-top:1px solid #ececef}
+  .doc h3{font-size:13.5px;font-weight:600;color:#111113;margin:20px 0 8px}
+  .doc p{margin:0 0 12px}
+  .doc strong{color:#111113;font-weight:600}
+  .doc code{font-family:"Geist Mono",monospace;font-size:12.5px;background:#f1f1f4;border:1px solid #e7e7ea;padding:1px 5px;border-radius:4px;color:#37373c}
+  .doc pre{background:#f6f6f8;border:1px solid #e7e7ea;border-radius:8px;padding:14px;overflow-x:auto;margin:0 0 14px}
+  .doc pre code{background:none;border:none;padding:0}
+  .doc ul,.doc ol{margin:0 0 12px;padding-left:22px}
+  .doc li{margin:4px 0}
+  .doc ol li::marker{font-family:"Geist Mono",monospace;font-size:12px;color:#8b8b94}
+  .doc blockquote{border-left:2px solid #5b5bd6;margin:0 0 14px;padding:6px 0 6px 14px;color:#6f6f78;font-style:normal}
+  .doc table{border-collapse:collapse;width:100%;margin:0 0 14px;font-size:13px}
+  .doc th{text-align:left;font-weight:600;border-bottom:1px solid #d4d4d8;padding:6px 10px 6px 0}
+  .doc td{border-bottom:1px solid #ececef;padding:6px 10px 6px 0}
+  .doc hr{border:none;border-top:1px solid #ececef;margin:22px 0}
+</style>
+</head>
+<body class="font-sans antialiased" x-data="app()" x-init="init()" @keydown.escape.window="uploadOpen=false">
+
+<!-- ══════════════════ HEADER ══════════════════ -->
+<header class="border-b border-line bg-white">
+  <div class="max-w-[1400px] mx-auto px-8 h-[60px] flex items-center gap-8">
+    <div class="flex items-center gap-3">
+      <!-- mark -->
+      <div class="w-[26px] h-[26px] rounded-[7px] bg-ink-900 grid place-items-center">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+          <circle cx="7" cy="7" r="2" fill="#fff"/>
+          <circle cx="2" cy="2.5" r="1.3" fill="#fff" opacity=".55"/>
+          <circle cx="12" cy="3" r="1.3" fill="#fff" opacity=".55"/>
+          <circle cx="11.5" cy="11.5" r="1.3" fill="#fff" opacity=".55"/>
+          <circle cx="2.5" cy="11" r="1.3" fill="#fff" opacity=".55"/>
+          <path d="M7 7L2 2.5M7 7l5-4M7 7l4.5 4.5M7 7l-4.5 4" stroke="#fff" stroke-width=".7" opacity=".4"/>
+        </svg>
+      </div>
+      <div class="flex items-baseline gap-2">
+        <span class="text-[15px] font-semibold tracking-tight">Automation Cortex</span>
+        <span class="text-[11px] font-mono text-ink-500 uppercase tracking-wider">estate intelligence</span>
+      </div>
+    </div>
+
+    <!-- estate vitals -->
+    <div class="ml-auto flex items-center gap-6" x-show="analytics" x-cloak>
+      <div class="flex items-center gap-6 text-[13px]">
+        <div class="flex items-baseline gap-1.5">
+          <span class="font-mono font-semibold text-[15px]" x-text="analytics?.automations_indexed"></span>
+          <span class="text-ink-500">bots</span>
+        </div>
+        <div class="w-px h-4 bg-line"></div>
+        <div class="flex items-baseline gap-1.5">
+          <span class="font-mono font-semibold text-[15px]" x-text="analytics?.dedupe_candidate_pairs"></span>
+          <span class="text-ink-500">duplicate pairs</span>
+        </div>
+        <div class="w-px h-4 bg-line"></div>
+        <div class="flex items-center gap-2">
+          <span class="text-ink-500">avg fragility</span>
+          <span class="font-mono font-semibold text-[15px]" x-text="fmt1(analytics?.average_fragility)"></span>
+          <div class="w-14 h-[3px] rounded-full bg-line overflow-hidden">
+            <div class="h-full rounded-full" :class="riskBg(analytics?.average_fragility)" :style="`width:${Math.min(100,(analytics?.average_fragility||0)*2)}%`"></div>
+          </div>
+        </div>
+      </div>
+      <button @click="uploadOpen=true" class="h-8 px-3.5 rounded-lg bg-ink-900 text-white text-[13px] font-medium hover:bg-ink-700 transition-colors flex items-center gap-1.5">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6 1v10M1 6h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        Add project
+      </button>
+    </div>
+  </div>
+
+  <!-- ══ TAB NAV ══ -->
+  <nav class="max-w-[1400px] mx-auto px-8 flex gap-1 -mb-px" role="tablist">
+    <template x-for="t in tabs" :key="t.id">
+      <button role="tab" :aria-selected="tab===t.id" @click="setTab(t.id)"
+        class="relative h-10 px-3.5 text-[13px] font-medium transition-colors border-b-2 -mb-px focus-ring"
+        :class="tab===t.id ? 'text-ink-900 border-ink-900' : 'text-ink-500 border-transparent hover:text-ink-700'">
+        <span class="flex items-center gap-1.5">
+          <span x-html="t.icon"></span>
+          <span x-text="t.label"></span>
+          <span x-show="t.soon" class="text-[9px] font-mono uppercase tracking-wider text-accent bg-accent-soft px-1.5 py-0.5 rounded">soon</span>
+        </span>
+      </button>
+    </template>
+  </nav>
+</header>
+
+<!-- ══════════════════ ADVISOR (landing) ══════════════════ -->
+<main x-show="tab==='advisor'" x-cloak data-screen-label="Advisor" class="max-w-[1400px] mx-auto px-8 flex flex-col justify-center" style="min-height: calc(100vh - 101px);">
+  <div class="w-full max-w-[780px] mx-auto py-12" :class="verdict && 'self-start'">
+    <div class="text-center mb-9">
+      <!-- brand wordmark -->
+      <div class="flex items-center justify-center gap-3 mb-6">
+        <div class="w-9 h-9 rounded-[10px] bg-ink-900 grid place-items-center">
+          <svg width="18" height="18" viewBox="0 0 14 14" fill="none">
+            <circle cx="7" cy="7" r="2" fill="#fff"/>
+            <circle cx="2" cy="2.5" r="1.3" fill="#fff" opacity=".55"/>
+            <circle cx="12" cy="3" r="1.3" fill="#fff" opacity=".55"/>
+            <circle cx="11.5" cy="11.5" r="1.3" fill="#fff" opacity=".55"/>
+            <circle cx="2.5" cy="11" r="1.3" fill="#fff" opacity=".55"/>
+            <path d="M7 7L2 2.5M7 7l5-4M7 7l4.5 4.5M7 7l-4.5 4" stroke="#fff" stroke-width=".7" opacity=".4"/>
+          </svg>
+        </div>
+        <span class="text-[26px] font-semibold tracking-tight leading-none">Automation <span class="text-accent">Cortex</span></span>
+      </div>
+      <div class="inline-flex items-center gap-2 text-[11px] font-mono uppercase tracking-widest text-ink-500 mb-4">
+        <span class="w-1 h-1 rounded-full bg-accent"></span> adversarial review
+      </div>
+      <h1 class="text-[38px] font-semibold tracking-tight leading-[1.05]">The estate argues back.</h1>
+      <p class="text-[15.5px] text-ink-500 mt-3 max-w-[520px] mx-auto leading-relaxed">Describe the bot you want to build. Cortex checks it against everything you already run — before a single activity is written.</p>
+    </div>
+
+    <!-- input -->
+    <div class="bg-white border border-line rounded-xl p-1.5 shadow-[0_1px_2px_rgba(0,0,0,0.04)] focus-within:border-ink-300 transition-colors">
+      <textarea x-model="spec" rows="2" placeholder="I want to build a bot that…"
+        @keydown.enter.meta="ask()" @keydown.enter.ctrl="ask()"
+        class="w-full resize-none px-3.5 py-2.5 text-[15px] bg-transparent placeholder:text-ink-500 focus:outline-none"></textarea>
+      <div class="flex items-center justify-between px-2 pb-1">
+        <span class="text-[11px] font-mono text-ink-500">⌘↵ to submit</span>
+        <button @click="ask()" :disabled="!spec.trim()||asking"
+          class="h-8 px-4 rounded-lg bg-ink-900 text-white text-[13px] font-medium disabled:opacity-40 hover:bg-ink-700 transition-colors">
+          <span x-show="!asking">Challenge it</span>
+          <span x-show="asking" x-cloak class="flex items-center gap-2"><span class="w-3 h-3 border-[1.5px] border-white/30 border-t-white rounded-full animate-spin"></span>Consulting estate…</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- suggestions -->
+    <div class="flex flex-wrap justify-center gap-2 mt-4" x-show="!verdict">
+      <template x-for="s in suggestions">
+        <button @click="spec=s;ask()" class="px-3 h-7 rounded-full border border-line bg-white text-[12.5px] text-ink-500 hover:text-ink-900 hover:border-ink-300 transition-colors" x-text="s"></button>
+      </template>
+    </div>
+
+    <!-- verdict -->
+    <div x-show="verdict" x-cloak class="mt-10 space-y-4">
+      <!-- adversarial paragraph -->
+      <div class="bg-white border border-line rounded-xl overflow-hidden">
+        <div class="border-l-[3px] border-accent px-6 py-5">
+          <div class="flex items-center gap-2 mb-2.5">
+            <span class="text-[11px] font-mono uppercase tracking-widest text-accent">the pushback</span>
+            <span class="text-[11px] font-mono px-2 py-0.5 rounded-full bg-ink-900 text-white" x-text="verdict?.modality"></span>
+          </div>
+          <p class="text-[15px] leading-relaxed text-ink-700" x-text="verdict?.adversarial_paragraph"></p>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-4">
+        <!-- similar bots -->
+        <div class="bg-white border border-line rounded-xl p-5">
+          <h3 class="text-[11px] font-mono uppercase tracking-widest text-ink-500 mb-4">Already in the estate</h3>
+          <div class="space-y-3">
+            <template x-for="s in verdict?.similar_automations||[]">
+              <div>
+                <div class="flex items-baseline justify-between mb-1">
+                  <button class="text-[13px] font-mono font-medium hover:text-accent transition-colors" @click="openBotFromAdvisor(s)" x-text="s.project_name"></button>
+                  <span class="text-[12px] font-mono text-ink-500" x-text="Math.round(s.score*100)+'%'"></span>
+                </div>
+                <div class="h-[3px] rounded-full bg-line overflow-hidden">
+                  <div class="h-full rounded-full bg-accent" :style="`width:${s.score*100}%`"></div>
+                </div>
+              </div>
+            </template>
+            <p x-show="!(verdict?.similar_automations||[]).length" class="text-[13px] text-ink-500">No overlap found — genuinely new ground.</p>
+          </div>
+        </div>
+
+        <!-- effort + reuse -->
+        <div class="bg-white border border-line rounded-xl p-5 flex flex-col gap-5">
+          <div>
+            <h3 class="text-[11px] font-mono uppercase tracking-widest text-ink-500 mb-2">Effort if you build anyway</h3>
+            <div class="flex items-baseline gap-2">
+              <span class="text-[26px] font-semibold tracking-tight" x-text="verdict?.effort_estimate?.split(' ')[0]"></span>
+              <span class="text-[13px] text-ink-500" x-text="(verdict?.effort_estimate||'').split(' ').slice(1).join(' ')"></span>
+            </div>
+          </div>
+          <div>
+            <h3 class="text-[11px] font-mono uppercase tracking-widest text-ink-500 mb-2.5">Reusable today</h3>
+            <div class="flex flex-wrap gap-1.5">
+              <template x-for="c in verdict?.reusable_components||[]">
+                <span class="px-2 py-1 rounded-md bg-accent-soft text-accent-dark text-[12px] font-mono" x-text="c"></span>
+              </template>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- reasons not to build -->
+      <div class="bg-white border border-line rounded-xl p-5" x-show="(verdict?.reasons_not_to_build||[]).length">
+        <h3 class="text-[11px] font-mono uppercase tracking-widest text-ink-500 mb-3">Reasons not to build</h3>
+        <ol class="space-y-2">
+          <template x-for="(r,i) in verdict?.reasons_not_to_build||[]">
+            <li class="flex gap-3 text-[13.5px] text-ink-700">
+              <span class="font-mono text-[12px] text-ink-500 pt-0.5" x-text="String(i+1).padStart(2,'0')"></span>
+              <span x-text="r"></span>
+            </li>
+          </template>
+        </ol>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- ══════════════════ GENOME ══════════════════ -->
+<main x-show="tab==='genome'" x-cloak data-screen-label="Genome" class="max-w-[1400px] mx-auto px-8 py-8">
+
+  <!-- estate strip -->
+  <div class="grid grid-cols-4 gap-px bg-line border border-line rounded-xl overflow-hidden mb-6">
+    <div class="bg-white px-6 py-5">
+      <div class="text-[11px] font-mono uppercase tracking-widest text-ink-500 mb-1">Indexed</div>
+      <div class="text-[28px] font-semibold tracking-tight leading-none" x-text="bots.length"></div>
+      <div class="text-[12px] text-ink-500 mt-1.5">automations</div>
+    </div>
+    <div class="bg-white px-6 py-5">
+      <div class="text-[11px] font-mono uppercase tracking-widest text-ink-500 mb-1">Risk spread</div>
+      <div class="flex items-end gap-[3px] h-[34px] mt-1">
+        <template x-for="b in [...bots].sort((a,c)=>c.fragility_score-a.fragility_score)">
+          <div class="w-[14px] rounded-sm" :class="riskBg(b.fragility_score)" :style="`height:${Math.max(12,b.fragility_score*2.4)}%`" :title="b.project_name"></div>
+        </template>
+      </div>
+      <div class="text-[12px] text-ink-500 mt-1.5">fragility per bot, sorted</div>
+    </div>
+    <div class="bg-white px-6 py-5">
+      <div class="text-[11px] font-mono uppercase tracking-widest text-ink-500 mb-1">Duplication</div>
+      <div class="text-[28px] font-semibold tracking-tight leading-none" x-text="analytics?.dedupe_candidate_pairs ?? '—'"></div>
+      <div class="text-[12px] text-ink-500 mt-1.5">candidate pairs to merge</div>
+    </div>
+    <div class="bg-white px-6 py-5">
+      <div class="text-[11px] font-mono uppercase tracking-widest text-ink-500 mb-1">Most fragile</div>
+      <div class="text-[15px] font-mono font-medium mt-1 truncate" x-text="mostFragile?.project_name||'—'"></div>
+      <div class="flex items-center gap-2 mt-2">
+        <span class="w-2 h-2 rounded-full" :class="riskBg(mostFragile?.fragility_score)"></span>
+        <span class="text-[12px] font-mono text-ink-500" x-text="'score '+fmt1(mostFragile?.fragility_score)"></span>
+      </div>
+    </div>
+  </div>
+
+  <div class="flex gap-6">
+    <!-- table -->
+    <div class="flex-1 bg-white border border-line rounded-xl overflow-hidden">
+      <div class="grid grid-cols-[minmax(220px,1.4fr)_80px_minmax(140px,1fr)_minmax(160px,1fr)_70px_70px] gap-4 px-5 h-9 items-center border-b border-line text-[10.5px] font-mono uppercase tracking-widest text-ink-500">
+        <span>Automation</span><span>Fragility</span><span></span><span>Applications</span><span class="text-right">Activities</span><span class="text-right">HITL</span>
+      </div>
+      <template x-for="b in botsSorted" :key="b.id">
+        <button @click="selectBot(b.id)"
+          class="w-full grid grid-cols-[minmax(220px,1.4fr)_80px_minmax(140px,1fr)_minmax(160px,1fr)_70px_70px] gap-4 px-5 py-3 items-center text-left border-b border-line/60 last:border-0 transition-colors hover:bg-paper focus-ring"
+          :class="selectedBot?.id===b.id && 'bg-accent-soft/50 hover:bg-accent-soft/50'">
+          <div class="min-w-0">
+            <div class="flex items-center gap-2">
+              <span class="w-[7px] h-[7px] rounded-full shrink-0" :class="riskBg(b.fragility_score)"></span>
+              <span class="text-[13px] font-mono font-medium truncate" x-text="b.project_name"></span>
+            </div>
+            <div class="text-[12px] text-ink-500 truncate mt-0.5 pl-[15px]" x-text="b.intent"></div>
+          </div>
+          <span class="text-[13px] font-mono font-semibold" :class="riskText(b.fragility_score)" x-text="fmt1(b.fragility_score)"></span>
+          <div class="h-[4px] rounded-full bg-line overflow-hidden">
+            <div class="h-full rounded-full" :class="riskBg(b.fragility_score)" :style="`width:${Math.min(100,b.fragility_score*2)}%`"></div>
+          </div>
+          <div class="flex flex-wrap gap-1">
+            <template x-for="a in b.applications||[]">
+              <span class="px-1.5 py-0.5 rounded bg-paper border border-line text-[11px] font-mono text-ink-500" x-text="a"></span>
+            </template>
+          </div>
+          <span class="text-[13px] font-mono text-ink-500 text-right" x-text="b.activity_count"></span>
+          <span class="text-[13px] font-mono text-right" :class="b.hitl_nodes>0?'text-ink-700':'text-ink-300'" x-text="b.hitl_nodes>0?b.hitl_nodes+' ✓':'—'"></span>
+        </button>
+      </template>
+    </div>
+
+    <!-- detail drawer -->
+    <aside x-show="selectedBot" x-cloak class="w-[360px] shrink-0">
+      <div class="bg-white border border-line rounded-xl p-5 sticky top-6">
+        <div class="flex items-start justify-between gap-3 mb-1">
+          <h2 class="text-[15px] font-mono font-semibold break-all" x-text="selectedBot?.project_name"></h2>
+          <button @click="selectedBot=null" aria-label="Close details" class="text-ink-500 hover:text-ink-900 text-[18px] leading-none focus-ring">×</button>
+        </div>
+        <p class="text-[13px] text-ink-500 leading-relaxed mb-5" x-text="selectedBot?.intent"></p>
+
+        <div class="flex items-center gap-3 mb-5 pb-5 border-b border-line">
+          <div class="w-[52px] h-[52px] rounded-xl grid place-items-center border" :class="riskSoftBg(selectedBot?.fragility_score)">
+            <span class="text-[18px] font-mono font-bold" :class="riskText(selectedBot?.fragility_score)" x-text="fmt1(selectedBot?.fragility_score)"></span>
+          </div>
+          <div>
+            <div class="text-[13px] font-medium" x-text="riskLabel(selectedBot?.fragility_score)"></div>
+            <div class="text-[12px] text-ink-500">composite fragility</div>
+          </div>
+        </div>
+
+        <h3 class="text-[10.5px] font-mono uppercase tracking-widest text-ink-500 mb-3">Fragility anatomy</h3>
+        <div class="space-y-2.5 mb-5 pb-5 border-b border-line">
+          <template x-for="d in fragDims(selectedBot)">
+            <div class="grid grid-cols-[130px_1fr_34px] gap-2 items-center">
+              <span class="text-[12px] text-ink-500" x-text="d.label"></span>
+              <div class="h-[4px] rounded-full bg-line overflow-hidden">
+                <div class="h-full rounded-full" :class="d.v>=60?'bg-red-500':d.v>=35?'bg-orange-400':'bg-ink-300'" :style="`width:${d.v}%`"></div>
+              </div>
+              <span class="text-[11.5px] font-mono text-ink-500 text-right" x-text="d.v"></span>
+            </div>
+          </template>
+        </div>
+
+        <h3 class="text-[10.5px] font-mono uppercase tracking-widest text-ink-500 mb-2.5">Skills</h3>
+        <div class="flex flex-wrap gap-1.5 mb-5 pb-5 border-b border-line">
+          <template x-for="c in selectedBot?.capabilities||[]">
+            <span class="px-2 py-1 rounded-md bg-paper border border-line text-[11.5px] font-mono text-ink-700" x-text="c"></span>
+          </template>
+        </div>
+
+        <h3 class="text-[10.5px] font-mono uppercase tracking-widest text-ink-500 mb-3">Likely duplicates</h3>
+        <div class="space-y-2.5">
+          <template x-for="s in selectedDupes">
+            <div class="grid grid-cols-[1fr_auto] gap-2 items-center">
+              <div class="min-w-0">
+                <div class="text-[12.5px] font-mono font-medium truncate" x-text="s.project_name"></div>
+                <div class="h-[3px] rounded-full bg-line overflow-hidden mt-1">
+                  <div class="h-full rounded-full bg-accent" :style="`width:${s.score*100}%`"></div>
+                </div>
+              </div>
+              <span class="text-[11.5px] font-mono text-ink-500" x-text="Math.round(s.score*100)+'%'"></span>
+            </div>
+          </template>
+          <p x-show="!selectedDupes.length" class="text-[12.5px] text-ink-500">None above threshold.</p>
+        </div>
+
+        <button @click="tab='playbooks';playbookBot=selectedBot.id;loadSop()" class="mt-5 w-full h-8 rounded-lg border border-line text-[12.5px] font-medium text-ink-700 hover:border-ink-300 transition-colors">Open playbook →</button>
+      </div>
+    </aside>
+  </div>
+</main>
+
+<!-- ══════════════════ BLAST RADIUS (Impact) ══════════════════ -->
+<main x-show="tab==='impact'" x-cloak data-screen-label="Blast Radius" class="max-w-[1400px] mx-auto px-8 py-8">
+  <div class="relative rounded-xl overflow-hidden border border-graph-line bg-graph-bg" style="height: calc(100vh - 180px); min-height: 560px;">
+    <!-- graph canvas -->
+    <div id="cy" class="absolute inset-0"></div>
+
+    <!-- floating control panel — Obsidian style -->
+    <div class="absolute top-4 left-4 w-[248px] rounded-lg bg-graph-panel/90 backdrop-blur border border-white/[0.06] overflow-hidden" style="box-shadow:0 8px 24px rgba(0,0,0,.4)">
+      <div class="px-4 pt-3.5 pb-2.5">
+        <div class="text-[10.5px] font-mono uppercase tracking-widest text-white/55">If this changes…</div>
+      </div>
+      <div class="pb-2">
+        <template x-for="a in apps" :key="a.name">
+          <button @click="selectApp(a.name)"
+            class="w-full flex items-center gap-2.5 px-4 h-8 text-left transition-colors focus-ring"
+            :class="impactApp===a.name ? 'bg-white/[0.07]' : 'hover:bg-white/[0.04]'">
+            <span class="w-[6px] h-[6px] rounded-full shrink-0 transition-colors" :class="impactApp===a.name?'bg-[#e0684b]':'bg-white/25'"></span>
+            <span class="text-[13px] flex-1" :class="impactApp===a.name?'text-white':'text-white/60'" x-text="a.name"></span>
+            <span class="text-[11px] font-mono text-white/55" x-text="a.count"></span>
+          </button>
+        </template>
+      </div>
+      <div x-show="impactApp" x-cloak class="border-t border-white/[0.06] px-4 py-3">
+        <div class="text-[10.5px] font-mono uppercase tracking-widest text-[#e0684b]/80 mb-2">
+          <span x-text="impacted.length"></span> bots break
+        </div>
+        <div class="space-y-1.5 max-h-[180px] overflow-y-auto dark-scroll pr-1">
+          <template x-for="b in impacted">
+            <div class="text-[12px] leading-snug">
+              <div class="font-mono text-white/80" x-text="b.project_name"></div>
+              <div class="text-white/65" x-text="b.reason"></div>
+            </div>
+          </template>
+        </div>
+        <button @click="clearApp()" class="mt-2.5 text-[11.5px] text-white/60 hover:text-white/90 transition-colors">Clear selection</button>
+      </div>
+    </div>
+
+    <!-- legend -->
+    <div class="absolute bottom-4 left-4 flex items-center gap-4 px-3.5 h-8 rounded-lg bg-graph-panel/90 backdrop-blur border border-white/[0.06] text-[11px] text-white/60">
+      <span class="flex items-center gap-1.5"><span class="w-[9px] h-[9px] rounded-full bg-white/60"></span> application</span>
+      <span class="flex items-center gap-1.5"><span class="w-[6px] h-[6px] rounded-full bg-white/35"></span> bot</span>
+      <span class="flex items-center gap-1.5"><span class="w-[6px] h-[6px] rounded-full bg-[#e0684b]"></span> impacted</span>
+      <span class="flex items-center gap-1.5"><span class="inline-block w-4 border-t border-dashed border-white/25"></span> similarity</span>
+    </div>
+
+    <!-- hint -->
+    <div x-show="!impactApp" x-cloak class="absolute bottom-4 right-4 px-3.5 h-8 flex items-center rounded-lg bg-graph-panel/90 backdrop-blur border border-white/[0.06] text-[11.5px] text-white/60">
+      Select an application, or hover any node
+    </div>
+  </div>
+</main>
+
+<!-- ══════════════════ PLAYBOOKS ══════════════════ -->
+<main x-show="tab==='playbooks'" x-cloak data-screen-label="Playbooks" class="max-w-[1400px] mx-auto px-8 py-8">
+  <div class="flex gap-6">
+    <!-- bot list -->
+    <aside class="w-[260px] shrink-0">
+      <input type="search" x-model="playbookSearch" placeholder="Filter bots…" aria-label="Filter bots"
+        class="w-full h-9 px-3.5 rounded-lg border border-line bg-white text-[13px] placeholder:text-ink-500 mb-3">
+      <div class="space-y-0.5">
+        <template x-for="b in playbookList" :key="b.id">
+          <button @click="playbookBot=b.id;loadSop()"
+            class="w-full flex items-center gap-2.5 px-3 h-9 rounded-lg text-left transition-colors focus-ring"
+            :class="playbookBot===b.id ? 'bg-white border border-line font-medium' : 'text-ink-500 hover:text-ink-900 hover:bg-white/60'">
+            <span class="w-[6px] h-[6px] rounded-full shrink-0" :class="riskBg(b.fragility_score)"></span>
+            <span class="text-[13px] font-mono truncate" x-text="b.project_name"></span>
+          </button>
+        </template>
+      </div>
+    </aside>
+
+    <!-- document -->
+    <div class="flex-1 min-w-0">
+      <div class="flex items-center justify-between mb-4">
+        <div class="flex items-center gap-2 text-[12px] font-mono text-ink-500">
+          <span>PLAYBOOK</span><span>/</span>
+          <span class="text-ink-700" x-text="currentPlaybookBot?.project_name"></span>
+        </div>
+        <!-- toggle -->
+        <div class="flex p-0.5 rounded-lg bg-line/60" role="tablist" aria-label="Playbook type">
+          <button role="tab" :aria-selected="!sopReverse" @click="sopReverse=false;loadSop()"
+            class="h-7 px-3.5 rounded-md text-[12.5px] font-medium transition-colors focus-ring"
+            :class="!sopReverse?'bg-white shadow-sm text-ink-900':'text-ink-500 hover:text-ink-700'">Bot playbook</button>
+          <button role="tab" :aria-selected="sopReverse" @click="sopReverse=true;loadSop()"
+            class="h-7 px-3.5 rounded-md text-[12.5px] font-medium transition-colors focus-ring"
+            :class="sopReverse?'bg-white shadow-sm text-ink-900':'text-ink-500 hover:text-ink-700'">Human fallback</button>
+        </div>
+      </div>
+
+      <!-- paper -->
+      <article class="bg-white border border-line rounded-xl px-12 py-10 max-w-[880px] shadow-[0_1px_3px_rgba(0,0,0,0.05)]">
+        <div class="flex items-center gap-2 mb-6 text-[11px] font-mono text-ink-500">
+          <span class="px-2 py-0.5 rounded bg-paper border border-line" x-text="sopReverse?'HUMAN FALLBACK SOP':'LIVING SOP'"></span>
+          <span>·</span><span>generated from XAML</span><span>·</span><span>refreshes every run</span>
+        </div>
+        <div class="doc" x-html="sopHtml" x-show="!sopLoading"></div>
+        <div x-show="sopLoading" x-cloak class="py-16 text-center text-[13px] text-ink-500">Generating…</div>
+      </article>
+    </div>
+  </div>
+</main>
+
+<!-- ══════════════════ STUDIO ══════════════════ -->
+<main x-show="tab==='studio'" x-cloak data-screen-label="Studio" class="max-w-[1400px] mx-auto px-8 py-10">
+  <div class="max-w-[560px] mb-8">
+    <div class="inline-flex items-center gap-2 text-[11px] font-mono uppercase tracking-widest text-ink-500 mb-3">
+      <span class="w-1 h-1 rounded-full bg-accent"></span> roadmap
+    </div>
+    <h1 class="text-[26px] font-semibold tracking-tight leading-tight">Same brain, inside Studio.</h1>
+    <p class="text-[14.5px] text-ink-500 mt-2 leading-relaxed">Cortex ships as a side panel in UiPath Studio — duplicate detection, volatility warnings and reuse hints while the developer types.</p>
+  </div>
+
+  <!-- window mock -->
+  <div class="rounded-xl overflow-hidden border border-[#26262e]" style="box-shadow:0 24px 60px -12px rgba(17,17,19,0.25)">
+    <div class="h-10 bg-[#1a1a21] flex items-center px-4 gap-2 border-b border-white/[0.06]">
+      <span class="w-3 h-3 rounded-full bg-[#3a3a44]"></span>
+      <span class="w-3 h-3 rounded-full bg-[#3a3a44]"></span>
+      <span class="w-3 h-3 rounded-full bg-[#3a3a44]"></span>
+      <span class="ml-3 text-[12px] font-mono text-white/60">UiPath Studio — SAP_InvoicePosting / Main.xaml</span>
+    </div>
+    <div class="grid grid-cols-[1fr_380px] bg-[#16161c]">
+      <!-- code -->
+      <pre class="p-6 text-[13px] leading-[1.75] font-mono overflow-x-auto dark-scroll"><code><span class="text-white/25 select-none"> 1  </span><span class="text-[#7d8bd4]">&lt;Sequence</span> <span class="text-[#9aa5b8]">DisplayName=</span><span class="text-[#a3be8c]">"SAP Invoice Posting"</span><span class="text-[#7d8bd4]">&gt;</span>
+<span class="text-white/25 select-none"> 2  </span>  <span class="text-[#7d8bd4]">&lt;ui:GetTransactionItem</span> <span class="text-[#9aa5b8]">QueueName=</span><span class="text-[#a3be8c]">"InvoicesToPost"</span> <span class="text-[#7d8bd4]">/&gt;</span>
+<span class="text-white/25 select-none"> 3  </span>  <span class="text-[#7d8bd4]">&lt;ui:InvokeWorkflowFile</span> <span class="text-[#9aa5b8]">Path=</span><span class="text-[#a3be8c]">"Workflows\SAPLogin.xaml"</span> <span class="text-[#7d8bd4]">/&gt;</span><span class="inline-block ml-3 px-1.5 rounded bg-[#e0684b]/15 text-[#e0684b] text-[11px] align-middle">duplicate</span>
+<span class="text-white/25 select-none"> 4  </span>  <span class="text-[#7d8bd4]">&lt;TryCatch&gt;</span>
+<span class="text-white/25 select-none"> 5  </span>    <span class="text-[#7d8bd4]">&lt;ui:RetryScope</span> <span class="text-[#9aa5b8]">NumberOfRetries=</span><span class="text-[#a3be8c]">"3"</span><span class="text-[#7d8bd4]">&gt;</span>
+<span class="text-white/25 select-none"> 6  </span>      <span class="text-[#7d8bd4]">&lt;ui:TypeInto</span> <span class="text-[#9aa5b8]">Selector=</span><span class="text-[#a3be8c]">"&lt;wnd app='saplogon.exe' cls='SAP_Frame'/&gt;…"</span>
+<span class="text-white/25 select-none"> 7  </span>                  <span class="text-[#9aa5b8]">Text=</span><span class="text-[#a3be8c]">"/nFB60"</span> <span class="text-[#7d8bd4]">/&gt;</span>
+<span class="text-white/25 select-none"> 8  </span>      <span class="text-[#7d8bd4]">&lt;ui:Click</span> <span class="text-[#9aa5b8]">Selector=</span><span class="text-[#a3be8c]">"…btn name='Post'"</span> <span class="text-[#7d8bd4]">/&gt;</span><span class="inline-block ml-3 px-1.5 rounded bg-amber-400/15 text-amber-300 text-[11px] align-middle">volatile</span>
+<span class="text-white/25 select-none"> 9  </span>    <span class="text-[#7d8bd4]">&lt;/ui:RetryScope&gt;</span>
+<span class="text-white/25 select-none">10  </span>  <span class="text-[#7d8bd4]">&lt;/TryCatch&gt;</span>
+<span class="text-white/25 select-none">11  </span><span class="text-[#7d8bd4]">&lt;/Sequence&gt;</span></code></pre>
+
+      <!-- cortex panel -->
+      <div class="border-l border-white/[0.06] bg-[#1a1a21] p-5 space-y-4">
+        <div class="flex items-center gap-2">
+          <div class="w-4 h-4 rounded bg-white/90 grid place-items-center"><span class="w-1.5 h-1.5 rounded-full bg-[#16161c]"></span></div>
+          <span class="text-[11px] font-mono uppercase tracking-widest text-white/65">Cortex panel</span>
+        </div>
+
+        <div class="rounded-lg bg-white/[0.04] border border-white/[0.06] p-4">
+          <div class="flex items-baseline justify-between mb-2">
+            <span class="text-[12px] text-white/65">This bot's fragility</span>
+            <span class="text-[16px] font-mono font-semibold text-amber-300">29.0</span>
+          </div>
+          <div class="h-[4px] rounded-full bg-white/[0.08] overflow-hidden">
+            <div class="h-full rounded-full bg-amber-400" style="width:58%"></div>
+          </div>
+        </div>
+
+        <div class="rounded-lg bg-white/[0.04] border border-white/[0.06] p-4 border-l-2 border-l-[#e0684b]">
+          <div class="text-[13px] font-medium text-white/85 mb-1">Duplicate detected</div>
+          <p class="text-[12px] text-white/60 leading-relaxed mb-3"><code class="text-white/70">SAPLogin.xaml</code> already exists in <span class="text-white/70">Shared_Utilities</span>.</p>
+          <button class="h-7 px-3 rounded-md bg-white/90 text-[#16161c] text-[12px] font-medium hover:bg-white transition-colors">Replace with reference</button>
+        </div>
+
+        <div class="rounded-lg bg-white/[0.04] border border-white/[0.06] p-4">
+          <div class="text-[13px] font-medium text-white/85 mb-1">8 UI changes last month</div>
+          <p class="text-[12px] text-white/60 leading-relaxed">Post button (line 8) is the most volatile selector in this workflow.</p>
+        </div>
+
+        <div class="rounded-lg bg-white/[0.04] border border-white/[0.06] p-4">
+          <div class="text-[13px] font-medium text-white/85 mb-2">Reusable components</div>
+          <div class="flex flex-wrap gap-1.5">
+            <span class="px-2 py-1 rounded bg-white/[0.06] text-[11.5px] font-mono text-white/60">EmailSender.xaml</span>
+            <span class="px-2 py-1 rounded bg-white/[0.06] text-[11.5px] font-mono text-white/60">ExcelReader.xaml</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- ══════════════════ UPLOAD MODAL ══════════════════ -->
+<div x-show="uploadOpen" x-cloak class="fixed inset-0 z-50 grid place-items-center p-6" role="dialog" aria-modal="true" aria-label="Add project">
+  <div class="absolute inset-0 bg-ink-900/40 backdrop-blur-[2px]" @click="uploadOpen=false"></div>
+  <div class="relative w-[440px] bg-white rounded-2xl border border-line shadow-2xl p-6" x-trap="uploadOpen">
+    <h2 class="text-[16px] font-semibold tracking-tight mb-1">Add project</h2>
+    <p class="text-[13px] text-ink-500 mb-5">Upload a UiPath project as a .zip. Cortex indexes the XAML, scores fragility and generates playbooks.</p>
+
+    <label class="block border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-colors"
+      :class="dragOver?'border-accent bg-accent-soft/40':'border-line hover:border-ink-300'"
+      @dragover.prevent="dragOver=true" @dragleave="dragOver=false" @drop.prevent="dragOver=false;onDrop($event)">
+      <input type="file" accept=".zip" class="sr-only" @change="onFile($event)">
+      <div class="text-[13.5px] font-medium mb-1" x-text="uploadFile ? uploadFile.name : 'Drop .zip here'"></div>
+      <div class="text-[12px] text-ink-500" x-text="uploadFile ? fmtSize(uploadFile.size) : 'or click to browse'"></div>
+    </label>
+
+    <div x-show="uploadResult" x-cloak class="mt-4 rounded-lg bg-accent-soft/60 border border-accent/20 px-4 py-3 text-[13px] text-accent-dark">
+      Indexed <strong x-text="uploadResult?.bots"></strong> bots · generated <strong x-text="uploadResult?.sops"></strong> playbooks
+    </div>
+
+    <div class="flex justify-end gap-2 mt-5">
+      <button @click="uploadOpen=false" class="h-8 px-3.5 rounded-lg border border-line text-[13px] font-medium text-ink-700 hover:border-ink-300 transition-colors">Cancel</button>
+      <button @click="doUpload()" :disabled="!uploadFile||uploading"
+        class="h-8 px-4 rounded-lg bg-ink-900 text-white text-[13px] font-medium disabled:opacity-40 hover:bg-ink-700 transition-colors">
+        <span x-text="uploading?'Indexing…':'Upload & index'"></span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/@alpinejs/focus@3.13.5/dist/cdn.min.js" defer></script>
+<script src="https://unpkg.com/alpinejs@3.13.5/dist/cdn.min.js" defer></script>
+<script>
+/* ─────────────────────────────────────────────────────────
+   Mock data — used only when the backend is unreachable,
+   so the file also works as a standalone demo.
+   ───────────────────────────────────────────────────────── */
+const MOCK = {
+  bots: [
+    {id:'hr-onboarding', project_name:'HR_OnboardingOrchestrator', intent:'Creates ActiveDirectory accounts and opens portals for new hires after HR approves an Excel onboarding form.', retry_blocks:2, hitl_nodes:3, activity_count:64, applications:['ActiveDirectory','Browser','Excel'], capabilities:['ad_provisioning','browser_automation','hitl_approval_gate','queue_producer','queue_consumer','hitl_form_task'], fragility:{score:32, selector_volatility:71, retry_density:38, exception_surface:52, cross_app_coupling:66, hitl_coverage:24}},
+    {id:'sap-vendor', project_name:'SAP_VendorMaster', intent:'Maintains vendor master records in SAP from approved change requests arriving by email.', retry_blocks:3, hitl_nodes:1, activity_count:48, applications:['SAP','Outlook'], capabilities:['sap_gui_automation','email_intake','master_data'], fragility:{score:31, selector_volatility:78, retry_density:45, exception_surface:40, cross_app_coupling:31, hitl_coverage:60}},
+    {id:'sap-invoice', project_name:'SAP_InvoicePosting', intent:'Posts vendor invoices into SAP FB60 from a validated queue.', retry_blocks:3, hitl_nodes:0, activity_count:41, applications:['SAP','Outlook'], capabilities:['sap_gui_automation','queue_consumer','invoice_posting'], fragility:{score:29, selector_volatility:74, retry_density:52, exception_surface:35, cross_app_coupling:28, hitl_coverage:0}},
+    {id:'excel-recon', project_name:'Excel_MonthlyReconciliation', intent:'Reconciles Excel ledgers against SAP GL exports and mails a variance report monthly.', retry_blocks:1, hitl_nodes:0, activity_count:36, applications:['Excel','Outlook'], capabilities:['excel_processing','reporting','email_send'], fragility:{score:22, selector_volatility:18, retry_density:22, exception_surface:44, cross_app_coupling:52, hitl_coverage:0}},
+    {id:'email-intake', project_name:'Email_InvoiceIntake', intent:'Watches a shared mailbox, extracts invoice PDFs and queues them for posting.', retry_blocks:2, hitl_nodes:1, activity_count:29, applications:['Outlook','Excel'], capabilities:['email_intake','document_extraction','queue_producer'], fragility:{score:21, selector_volatility:12, retry_density:30, exception_surface:38, cross_app_coupling:40, hitl_coverage:45}},
+    {id:'shared-utils', project_name:'Shared_Utilities', intent:'Common library: SAP login, Excel reader, email sender, logging wrappers.', retry_blocks:4, hitl_nodes:0, activity_count:58, applications:['SAP','Excel'], capabilities:['sap_gui_automation','excel_processing','email_send','logging'], fragility:{score:17, selector_volatility:34, retry_density:48, exception_surface:20, cross_app_coupling:15, hitl_coverage:0}},
+  ],
+  similarity: {
+    'sap-invoice':[{dst_id:'shared-utils',project_name:'Shared_Utilities',score:0.72,method:'xaml_subtree'},{dst_id:'sap-vendor',project_name:'SAP_VendorMaster',score:0.51,method:'capability_overlap'}],
+    'sap-vendor':[{dst_id:'sap-invoice',project_name:'SAP_InvoicePosting',score:0.51,method:'capability_overlap'},{dst_id:'shared-utils',project_name:'Shared_Utilities',score:0.44,method:'xaml_subtree'}],
+    'email-intake':[{dst_id:'excel-recon',project_name:'Excel_MonthlyReconciliation',score:0.38,method:'capability_overlap'}],
+    'excel-recon':[{dst_id:'email-intake',project_name:'Email_InvoiceIntake',score:0.38,method:'capability_overlap'}],
+    'shared-utils':[{dst_id:'sap-invoice',project_name:'SAP_InvoicePosting',score:0.72,method:'xaml_subtree'}],
+    'hr-onboarding':[],
+  },
+  blast: {
+    'SAP':[{id:'sap-vendor',project_name:'SAP_VendorMaster',reason:'SAP GUI selectors in 12 activities'},{id:'sap-invoice',project_name:'SAP_InvoicePosting',reason:'Posts via FB60 transaction screen'},{id:'shared-utils',project_name:'Shared_Utilities',reason:'SAPLogin.xaml used by 2 bots'}],
+    'Excel':[{id:'hr-onboarding',project_name:'HR_OnboardingOrchestrator',reason:'Reads onboarding template workbook'},{id:'excel-recon',project_name:'Excel_MonthlyReconciliation',reason:'Ledger read/write across 8 sheets'},{id:'email-intake',project_name:'Email_InvoiceIntake',reason:'Writes extraction results to workbook'},{id:'shared-utils',project_name:'Shared_Utilities',reason:'ExcelReader.xaml shared component'}],
+    'Outlook':[{id:'sap-vendor',project_name:'SAP_VendorMaster',reason:'Change requests arrive by mail'},{id:'sap-invoice',project_name:'SAP_InvoicePosting',reason:'Failure notifications'},{id:'email-intake',project_name:'Email_InvoiceIntake',reason:'Watches shared mailbox'},{id:'excel-recon',project_name:'Excel_MonthlyReconciliation',reason:'Mails variance report'}],
+    'Browser':[{id:'hr-onboarding',project_name:'HR_OnboardingOrchestrator',reason:'Opens HR portal for provisioning'}],
+    'ActiveDirectory':[{id:'hr-onboarding',project_name:'HR_OnboardingOrchestrator',reason:'Creates accounts via AD portal'}],
+  },
+  analytics: {automations_indexed:6, dedupe_candidate_pairs:3, average_fragility:25.38, top_fragile:['HR_OnboardingOrchestrator','SAP_VendorMaster','SAP_InvoicePosting'], sops_generated:12},
+  consultant: {
+    adversarial_paragraph:"Before you write a single activity: 72% of what you're describing already runs in production. SAP_InvoicePosting posts to FB60 today, and Email_InvoiceIntake already extracts invoices from the mailbox you'd be watching. Building this from scratch adds a third bot with overlapping selectors to an SAP surface that changed 8 times last month — you'd be tripling the maintenance bill for a capability you mostly own.",
+    modality:'EXTEND, DON\'T BUILD',
+    similar_automations:[{dst_id:'sap-invoice',project_name:'SAP_InvoicePosting',score:0.72,method:'intent_similarity'},{dst_id:'email-intake',project_name:'Email_InvoiceIntake',score:0.58,method:'capability_overlap'},{dst_id:'shared-utils',project_name:'Shared_Utilities',score:0.41,method:'xaml_subtree'}],
+    reusable_components:['SAPLogin.xaml','ExcelReader.xaml','EmailSender.xaml','QueueDispatcher.xaml'],
+    effort_estimate:'3 days if you extend SAP_InvoicePosting — 15 days from scratch',
+    reasons_not_to_build:['SAP_InvoicePosting already covers the posting flow; a config change adds your document type.','The mailbox watcher exists — Email_InvoiceIntake queues to the same Orchestrator queue.','SAP GUI selectors changed 8× last month; every new bot on that surface inherits the volatility.','Shared_Utilities owns SAP login — duplicating it is the #1 source of drift in this estate.']
+  },
+  sop: (bot, reverse) => reverse ? `# Human fallback — ${bot.project_name}
+
+> When this automation is down, a human executes this procedure. Generated from the bot's actual XAML.
+
+## Prerequisites
+- Access to **${(bot.applications||[]).join(', ')}**
+- Membership in the \`RPA_Fallback\` AD group
+- The run ledger open at \`\\\\ops\\rpa\\ledger.xlsx\`
+
+## Procedure
+1. Open the Orchestrator queue and note all **New** items for this process.
+2. For each item, perform the steps below **in order** — do not batch.
+3. ${bot.intent}
+4. Mark the queue item **Successful** manually, with your initials in the comment.
+
+## Escalation
+| Condition | Action |
+|---|---|
+| More than 20 pending items | Page the on-call architect |
+| Source system unavailable | Log downtime, stop processing |
+| Data mismatch | Move item to \`Manual_Review\` queue |
+
+## Handback
+When the bot is restored, process **only** items created after your last manual entry. The bot resumes from the queue automatically.` : `# Living SOP — ${bot.project_name}
+
+**Intent.** ${bot.intent}
+
+> This SOP is generated from the automation's actual XAML and refreshes on every run.
+
+## What this bot does
+This bot retrieves work from its Orchestrator queue and processes each transaction against ${(bot.applications||[]).join(' and ')}. Built-in retry scopes (${bot.retry_blocks}) handle transient failures; ${bot.hitl_nodes>0?`${bot.hitl_nodes} human-in-the-loop touchpoint${bot.hitl_nodes>1?'s':''} gate the irreversible steps`:'the flow runs fully unattended'}.
+
+## Workflow: \`Main.xaml\`
+1. \`GetTransactionItem\` — pull next item from queue
+2. \`InvokeWorkflowFile\` — load shared components
+3. \`RetryScope ×${bot.retry_blocks}\` — main application interaction
+4. \`SetTransactionStatus\` — report outcome to Orchestrator
+
+## Failure modes handled
+- \`ui:SelectorNotFoundException\` — retries, then escalates with screenshot
+- \`BusinessRuleException\` — routes item to \`Manual_Review\`
+- Application timeout — kills process tree, restarts session
+
+## Signals
+| Metric | Value |
+|---|---|
+| Activities | ${bot.activity_count} |
+| Retry blocks | ${bot.retry_blocks} |
+| HITL nodes | ${bot.hitl_nodes} |
+| Fragility | ${bot.fragility.score} |`,
+};
+
+/* ───────────────────────────────────────────────────────── */
+async function apiGet(path){
+  try{ const r = await fetch(path); if(!r.ok) throw 0; return await r.json(); }
+  catch(e){ return null; }
+}
+
+function app(){
+  return {
+    tabs: [
+      {id:'advisor', label:'Advisor', icon:svgIcon('advisor')},
+      {id:'genome', label:'Genome', icon:svgIcon('genome')},
+      {id:'impact', label:'Blast Radius', icon:svgIcon('impact')},
+      {id:'playbooks', label:'Playbooks', icon:svgIcon('playbooks')},
+      {id:'studio', label:'Studio', icon:svgIcon('studio'), soon:true},
+    ],
+    tab:'advisor',
+    analytics:null,
+    bots:[], apps:[],
+    // advisor
+    spec:'', asking:false, verdict:null,
+    suggestions:['I want to build an SAP invoice bot','Automate onboarding new hires with an approval','Extract invoice data from emails','Reconcile Excel with SAP GL monthly'],
+    // genome
+    selectedBot:null, selectedDupes:[],
+    // impact
+    impactApp:null, impacted:[], cy:null,
+    // playbooks
+    playbookBot:null, playbookSearch:'', sopReverse:false, sopHtml:'', sopLoading:false,
+    // upload
+    uploadOpen:false, uploadFile:null, uploading:false, uploadResult:null, dragOver:false,
+
+    async init(){
+      const [an, list] = await Promise.all([apiGet('/analytics'), apiGet('/automations')]);
+      this.analytics = an || MOCK.analytics;
+      const base = list || MOCK.bots;
+      // enrich each bot with detail (capabilities, applications, fragility)
+      const details = await Promise.all(base.map(async b=>{
+        const d = await apiGet(`/automations/${b.id}`);
+        const m = MOCK.bots.find(x=>x.id===b.id) || {};
+        const merged = {...m, ...b, ...(d||{})};
+        merged.fragility_score = merged.fragility?.score ?? m.fragility?.score ?? 0;
+        merged.applications = merged.applications || m.applications || [];
+        return merged;
+      }));
+      this.bots = details;
+      const counts = {};
+      details.forEach(b=>(b.applications||[]).forEach(a=>counts[a]=(counts[a]||0)+1));
+      this.apps = Object.entries(counts).sort((a,b)=>b[1]-a[1]).map(([name,count])=>({name,count}));
+      if(!this.playbookBot && details.length) this.playbookBot = details[0].id;
+      this.loadSop();
+    },
+
+    /* ── shared ── */
+    fmt1(n){ return n==null?'—':Number(n).toFixed(n%1?2:0); },
+    fmtSize(b){ return b>1e6?(b/1e6).toFixed(1)+' MB':(b/1e3).toFixed(0)+' KB'; },
+    riskBg(s){ return s>=30?'bg-red-500':s>=25?'bg-orange-400':s>=18?'bg-amber-400':'bg-emerald-500'; },
+    riskText(s){ return s>=30?'text-red-600':s>=25?'text-orange-500':s>=18?'text-amber-500':'text-emerald-600'; },
+    riskSoftBg(s){ return s>=30?'bg-red-50 border-red-200':s>=25?'bg-orange-50 border-orange-200':s>=18?'bg-amber-50 border-amber-200':'bg-emerald-50 border-emerald-200'; },
+    riskLabel(s){ return s>=30?'High fragility':s>=25?'Elevated':s>=18?'Moderate':'Stable'; },
+    get botsSorted(){ return [...this.bots].sort((a,b)=>b.fragility_score-a.fragility_score); },
+    get mostFragile(){ return this.botsSorted[0]; },
+
+    setTab(id){
+      this.tab = id;
+      if(id==='impact') this.$nextTick(()=>this.initGraph());
+    },
+
+    /* ── advisor ── */
+    async ask(){
+      if(!this.spec.trim()) return;
+      this.asking = true; this.verdict = null;
+      try{
+        const r = await fetch('/consultant',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({spec:this.spec})});
+        if(!r.ok) throw 0;
+        this.verdict = await r.json();
+      }catch(e){
+        await new Promise(res=>setTimeout(res,700));
+        this.verdict = MOCK.consultant;
+      }
+      this.asking = false;
+    },
+    openBotFromAdvisor(s){
+      const b = this.bots.find(x=>x.id===s.dst_id || x.project_name===s.project_name);
+      if(b){ this.tab='genome'; this.selectBot(b.id); }
+    },
+
+    /* ── genome ── */
+    async selectBot(id){
+      this.selectedBot = this.bots.find(b=>b.id===id) || null;
+      this.selectedDupes = [];
+      if(!this.selectedBot) return;
+      const sim = await apiGet(`/similarity/${id}?min_score=0.3`);
+      this.selectedDupes = sim || MOCK.similarity[id] || [];
+    },
+    fragDims(b){
+      if(!b?.fragility) return [];
+      const f = b.fragility;
+      return [
+        {label:'Selector volatility', v:f.selector_volatility??0},
+        {label:'Retry density', v:f.retry_density??0},
+        {label:'Exception surface', v:f.exception_surface??0},
+        {label:'Cross-app coupling', v:f.cross_app_coupling??0},
+        {label:'HITL coverage', v:f.hitl_coverage??0},
+      ];
+    },
+
+    /* ── blast radius (Obsidian-style graph) ── */
+    initGraph(){
+      if(this.cy){ this.cy.resize(); this.animateOpen(); return; }
+      const el = document.getElementById('cy');
+      if(!el || !this.bots.length) return;
+
+      const elements = [];
+      // degree = number of connections, used to size nodes (Obsidian-style)
+      const deg = {};
+      this.bots.forEach(b=>{ deg[b.id] = (b.applications||[]).length; });
+      this.apps.forEach(a=>{ deg['app:'+a.name] = a.count; });
+      Object.entries(MOCK.similarity).forEach(([src,rows])=>rows.forEach(r=>{ if(deg[src]!=null) deg[src]++; }));
+
+      this.apps.forEach(a=>elements.push({data:{id:'app:'+a.name, label:a.name, kind:'app', deg:deg['app:'+a.name]||1, icon:appIconURI(a.name)}}));
+      this.bots.forEach(b=>{
+        elements.push({data:{id:b.id, label:b.project_name, kind:'bot', frag:b.fragility_score, deg:deg[b.id]||1, icon:botIconURI(b)}});
+        (b.applications||[]).forEach(a=>elements.push({data:{id:`${b.id}→${a}`, source:b.id, target:'app:'+a, kind:'uses'}}));
+      });
+      // similarity edges (dashed, faint)
+      const seen = new Set();
+      Object.entries(MOCK.similarity).forEach(([src,rows])=>rows.forEach(r=>{
+        const key = [src,r.dst_id].sort().join('|');
+        if(seen.has(key) || !this.bots.find(b=>b.id===r.dst_id)) return;
+        seen.add(key);
+        elements.push({data:{id:'sim:'+key, source:src, target:r.dst_id, kind:'sim'}});
+      }));
+
+      this.cy = cytoscape({
+        container: el,
+        elements,
+        wheelSensitivity: 0.2,
+        minZoom: 0.3, maxZoom: 2.2,
+        style: [
+          { selector:'node', style:{
+              'background-color':'#9a9aa6',
+              'background-image':'data(icon)',
+              'background-fit':'none',
+              'background-width':'58%','background-height':'58%',
+              'background-clip':'none',
+              'border-width':0,
+              'label':'data(label)', 'color':'#8a8a95',
+              'font-family':'Geist, sans-serif', 'font-size':'9px', 'font-weight':400,
+              'text-valign':'bottom', 'text-margin-y':5,
+              'width':'mapData(deg, 1, 6, 15, 34)', 'height':'mapData(deg, 1, 6, 15, 34)',
+              'transition-property':'background-color, opacity, width, height',
+              'transition-duration':'160ms',
+          }},
+          { selector:'node[kind="app"]', style:{
+              'background-color':'#b9b9c6',
+              'width':'mapData(deg, 1, 6, 22, 46)', 'height':'mapData(deg, 1, 6, 22, 46)',
+              'font-weight':500, 'color':'#9a9aa6',
+          }},
+          { selector:'edge', style:{
+              'width':1, 'line-color':'#ffffff', 'opacity':0.12,
+              'curve-style':'straight',
+              'transition-property':'opacity, line-color',
+              'transition-duration':'160ms',
+          }},
+          { selector:'edge[kind="sim"]', style:{ 'line-style':'dashed', 'opacity':0.08 }},
+          /* hover / selection states */
+          { selector:'.dim', style:{ 'opacity':0.14 }},
+          { selector:'edge.dim', style:{ 'opacity':0.04 }},
+          { selector:'node.hot', style:{ 'background-color':'#e0684b', 'color':'#e6a08b', 'opacity':1 }},
+          { selector:'node.hotcenter', style:{ 'background-color':'#f0e6e0', 'color':'#f4f4f8', 'opacity':1 }},
+          { selector:'edge.hot', style:{ 'line-color':'#e0684b', 'opacity':0.6 }},
+          { selector:'node.near', style:{ 'opacity':1 }},
+          { selector:'edge.near', style:{ 'opacity':0.4 }},
+        ],
+        layout:{ name:'cose', animate:true, animationDuration:1100, animationEasing:'ease-out', idealEdgeLength:165, nodeRepulsion:32000, nodeOverlap:32, gravity:0.05, componentSpacing:120, padding:80, randomize:true, fit:false },
+      });
+      this.cy.one('layoutstop', ()=>this.fitAiry());
+
+      // dynamically fit to the container on any resize
+      const ro = new ResizeObserver(()=>{
+        if(!this.cy) return;
+        this.cy.resize();
+        if(this.impactApp) this.zoomToImpact(); else this.fitAiry();
+      });
+      ro.observe(el);
+
+      // hover: light up neighborhood, dim the rest (Obsidian behavior)
+      this.cy.on('mouseover','node',(e)=>{
+        if(this.impactApp) return;
+        const n = e.target, hood = n.closedNeighborhood();
+        this.cy.elements().addClass('dim');
+        hood.removeClass('dim').addClass('near');
+        n.removeClass('dim');
+      });
+      this.cy.on('mouseout','node',()=>{
+        if(this.impactApp) return;
+        this.cy.elements().removeClass('dim near');
+      });
+      this.cy.on('tap','node',(e)=>{
+        const n = e.target;
+        if(n.data('kind')==='app'){ this.selectApp(n.data('label')); return; }
+        // bot tap: focus its neighborhood and zoom in (Obsidian-style)
+        if(this.impactApp) this.clearApp();
+        const hood = n.closedNeighborhood();
+        this.cy.elements().removeClass('near').addClass('dim');
+        hood.removeClass('dim').addClass('near');
+        n.removeClass('dim');
+        this.cy.animate({ fit:{ eles:hood, padding:110 }, duration:600, easing:'ease-in-out-cubic' });
+      });
+      this.cy.on('tap',(e)=>{ if(e.target===this.cy) this.clearApp(); });
+    },
+
+    // keep the map small & airy — never blow nodes up to fill the canvas
+    fitAiry(){
+      if(!this.cy) return;
+      const cy = this.cy;
+      cy.fit(cy.elements(), 80);
+      if(cy.zoom() > 1.15){ cy.zoom(1.0); cy.center(cy.elements()); }
+    },
+    // re-settle the whole graph with motion every time the tab is opened
+    animateOpen(){
+      if(!this.cy) return;
+      const cy = this.cy;
+      cy.stop();
+      cy.elements().removeClass('dim near hot hotcenter');
+      this.impactApp = null; this.impacted = [];
+      const lay = cy.layout({ name:'cose', animate:true, animationDuration:1100, animationEasing:'ease-out', idealEdgeLength:165, nodeRepulsion:32000, nodeOverlap:32, gravity:0.05, componentSpacing:120, padding:80, randomize:true, fit:false });
+      lay.one('layoutstop', ()=>this.fitAiry());
+      lay.run();
+    },
+
+    async selectApp(name){
+      this.impactApp = name;
+      const res = await apiGet(`/blast-radius/app/${encodeURIComponent(name)}`);
+      this.impacted = res?.impacted || MOCK.blast[name] || [];
+      if(!this.cy) return;
+      const cy = this.cy;
+      cy.elements().removeClass('dim near hot hotcenter');
+      cy.elements().addClass('dim');
+      const appNode = cy.getElementById('app:'+name);
+      appNode.removeClass('dim').addClass('hotcenter');
+      this.impacted.forEach(b=>{
+        const n = cy.getElementById(b.id);
+        n.removeClass('dim').addClass('hot');
+        const edge = cy.getElementById(`${b.id}→${name}`);
+        edge.removeClass('dim').addClass('hot');
+      });
+      this.zoomToImpact();
+    },
+    zoomToImpact(){
+      if(!this.cy || !this.impactApp) return;
+      const cy = this.cy;
+      let eles = cy.getElementById('app:'+this.impactApp);
+      this.impacted.forEach(b=>{ eles = eles.union(cy.getElementById(b.id)); });
+      // animate to the subset, but cap the zoom so it never blows up
+      const sZ = cy.zoom(), sP = {...cy.pan()};
+      cy.fit(eles, 120);
+      if(cy.zoom() > 1.6){ cy.zoom(1.5); cy.center(eles); }
+      const tZ = cy.zoom(), tP = {...cy.pan()};
+      cy.zoom(sZ); cy.pan(sP);
+      cy.animate({ zoom:tZ, pan:tP, duration:700, easing:'ease-in-out-cubic' });
+    },
+    clearApp(){
+      this.impactApp = null; this.impacted = [];
+      if(!this.cy) return;
+      const cy = this.cy;
+      cy.elements().removeClass('dim near hot hotcenter');
+      const sZ = cy.zoom(), sP = {...cy.pan()};
+      cy.fit(cy.elements(), 80);
+      if(cy.zoom() > 1.15){ cy.zoom(1.0); cy.center(cy.elements()); }
+      const tZ = cy.zoom(), tP = {...cy.pan()};
+      cy.zoom(sZ); cy.pan(sP);
+      cy.animate({ zoom:tZ, pan:tP, duration:650, easing:'ease-in-out-cubic' });
+    },
+
+    /* ── playbooks ── */
+    get playbookList(){
+      const q = this.playbookSearch.toLowerCase();
+      return this.bots.filter(b=>!q || b.project_name.toLowerCase().includes(q));
+    },
+    get currentPlaybookBot(){ return this.bots.find(b=>b.id===this.playbookBot); },
+    async loadSop(){
+      const bot = this.currentPlaybookBot;
+      if(!bot) return;
+      this.sopLoading = true;
+      const res = await apiGet(`/sop/${bot.id}?reverse=${this.sopReverse}`);
+      const md = res?.markdown || MOCK.sop(bot, this.sopReverse);
+      this.sopHtml = marked.parse(md);
+      this.sopLoading = false;
+    },
+
+    /* ── upload ── */
+    onFile(e){ this.uploadFile = e.target.files[0]||null; this.uploadResult=null; },
+    onDrop(e){ this.uploadFile = e.dataTransfer.files[0]||null; this.uploadResult=null; },
+    async doUpload(){
+      if(!this.uploadFile) return;
+      this.uploading = true;
+      try{
+        const fd = new FormData(); fd.append('file', this.uploadFile);
+        const r = await fetch('/upload',{method:'POST',body:fd});
+        if(!r.ok) throw 0;
+        this.uploadResult = await r.json();
+      }catch(e){
+        await new Promise(res=>setTimeout(res,900));
+        this.uploadResult = {ok:true, uploaded_as:this.uploadFile.name, bots:2, sops:4};
+      }
+      this.uploading = false;
+      this.init(); // refresh estate
+    },
+  };
+}
+
+function appIconURI(name){
+  const c = '#33333c';
+  const g = {
+    // SAP → enterprise database stack
+    'SAP': `<path d="M4 6c0-1.1 2.7-2 6-2s6 .9 6 2-2.7 2-6 2-6-.9-6-2Z" stroke="${c}" stroke-width="1.4"/><path d="M4 6v8c0 1.1 2.7 2 6 2s6-.9 6-2V6" stroke="${c}" stroke-width="1.4"/><path d="M4 10c0 1.1 2.7 2 6 2s6-.9 6-2" stroke="${c}" stroke-width="1.4"/>`,
+    // Excel → grid
+    'Excel': `<rect x="3.5" y="3.5" width="13" height="13" rx="1.5" stroke="${c}" stroke-width="1.4"/><path d="M3.5 8h13M3.5 12h13M8 3.5v13M12 3.5v13" stroke="${c}" stroke-width="1.2"/>`,
+    // Outlook → envelope
+    'Outlook': `<rect x="3" y="5" width="14" height="10" rx="1.5" stroke="${c}" stroke-width="1.4"/><path d="M3.5 6l6.5 5 6.5-5" stroke="${c}" stroke-width="1.4"/>`,
+    // Browser → globe
+    'Browser': `<circle cx="10" cy="10" r="6.5" stroke="${c}" stroke-width="1.4"/><path d="M3.5 10h13M10 3.5c2 2 2 11 0 13M10 3.5c-2 2-2 11 0 13" stroke="${c}" stroke-width="1.2"/>`,
+    // ActiveDirectory → users
+    'ActiveDirectory': `<circle cx="7.5" cy="7" r="2.6" stroke="${c}" stroke-width="1.4"/><path d="M3 16c0-2.5 2-4.2 4.5-4.2S12 13.5 12 16" stroke="${c}" stroke-width="1.4"/><path d="M12.5 5.2A2.4 2.4 0 0 1 14 9.6M13.5 12c2 .4 3.5 2 3.5 4" stroke="${c}" stroke-width="1.3"/>`,
+  };
+  const inner = g[name] || `<circle cx="10" cy="10" r="6" stroke="${c}" stroke-width="1.4"/>`;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none">${inner}</svg>`;
+  return 'data:image/svg+xml;utf8,'+encodeURIComponent(svg);
+}
+
+// bot glyph chosen from the project name / its function
+function botIconURI(bot){
+  const c = '#2c2c34';
+  const n = (bot.project_name||'').toLowerCase();
+  let inner;
+  if(/onboard|hr|hire|provision/.test(n)){            // people
+    inner = `<circle cx="10" cy="7" r="2.8" stroke="${c}" stroke-width="1.5"/><path d="M4.5 16c0-3 2.5-5 5.5-5s5.5 2 5.5 5" stroke="${c}" stroke-width="1.5"/>`;
+  } else if(/invoice|vendor|posting|sap|master/.test(n)){ // receipt/doc
+    inner = `<path d="M5.5 3.5h9v13l-1.5-1-1.5 1-1.5-1-1.5 1-1.5-1-1.5 1v-13Z" stroke="${c}" stroke-width="1.4" stroke-linejoin="round"/><path d="M8 7.5h4M8 10.5h4" stroke="${c}" stroke-width="1.3"/>`;
+  } else if(/excel|reconcil|report|ledger/.test(n)){     // bar chart
+    inner = `<path d="M4 16V4" stroke="${c}" stroke-width="1.4"/><path d="M4 16h12" stroke="${c}" stroke-width="1.4"/><rect x="6.5" y="10" width="2.2" height="4" fill="${c}"/><rect x="10" y="7" width="2.2" height="7" fill="${c}"/><rect x="13.5" y="9" width="2.2" height="5" fill="${c}"/>`;
+  } else if(/email|mail|intake|inbox/.test(n)){          // envelope
+    inner = `<rect x="3.5" y="5.5" width="13" height="9" rx="1.4" stroke="${c}" stroke-width="1.4"/><path d="M4 6.5l6 4.5 6-4.5" stroke="${c}" stroke-width="1.4"/>`;
+  } else if(/util|shared|library|common/.test(n)){        // stacked blocks (library)
+    inner = `<rect x="4" y="4" width="5.5" height="5.5" rx="1" stroke="${c}" stroke-width="1.4"/><rect x="10.5" y="4" width="5.5" height="5.5" rx="1" stroke="${c}" stroke-width="1.4"/><rect x="7.2" y="10.5" width="5.5" height="5.5" rx="1" stroke="${c}" stroke-width="1.4"/>`;
+  } else {                                                // generic bot
+    inner = `<rect x="4.5" y="6.5" width="11" height="8" rx="2" stroke="${c}" stroke-width="1.4"/><path d="M10 3.5v3" stroke="${c}" stroke-width="1.4"/><circle cx="10" cy="3" r="1" fill="${c}"/><circle cx="8" cy="10.5" r="1" fill="${c}"/><circle cx="12" cy="10.5" r="1" fill="${c}"/>`;
+  }
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none">${inner}</svg>`;
+  return 'data:image/svg+xml;utf8,'+encodeURIComponent(svg);
+}
+
+function svgIcon(k){
+  const s = 'width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"';
+  switch(k){
+    case 'advisor': return `<svg ${s}><path d="M7 1.5a4.5 4.5 0 0 1 4.5 4.5c0 1.8-1 2.8-1.8 3.7-.5.6-.7 1.3-.7 1.8h-4c0-.5-.2-1.2-.7-1.8C3.5 8.8 2.5 7.8 2.5 6A4.5 4.5 0 0 1 7 1.5Z"/><path d="M5.5 13h3"/></svg>`;
+    case 'genome': return `<svg ${s}><path d="M3 1.5c0 4 8 7 8 11M11 1.5c0 4-8 7-8 11M3.5 3.5h7M3.5 10.5h7"/></svg>`;
+    case 'impact': return `<svg ${s}><circle cx="7" cy="7" r="1.6"/><circle cx="2.5" cy="3" r="1.1"/><circle cx="11.5" cy="2.8" r="1.1"/><circle cx="11.8" cy="11" r="1.1"/><circle cx="2.8" cy="11.3" r="1.1"/><path d="M5.8 5.9 3.4 3.8M8.2 5.9l2.4-2.2M8.3 8.1l2.6 2.2M5.7 8.2l-2 2.3"/></svg>`;
+    case 'playbooks': return `<svg ${s}><path d="M2 2.5h4.2c.7 0 1.3.6 1.3 1.3V12c0-.7-.6-1.2-1.3-1.2H2V2.5ZM12 2.5H7.8c-.7 0-1.3.6-1.3 1.3V12c0-.7.6-1.2 1.3-1.2H12V2.5Z"/></svg>`;
+    case 'studio': return `<svg ${s}><rect x="1.5" y="2.5" width="11" height="9" rx="1.5"/><path d="M8.5 11.5v-9M10 5l1 1-1 1"/></svg>`;
+    default: return '';
+  }
+}
+</script>
+</body>
+</html>

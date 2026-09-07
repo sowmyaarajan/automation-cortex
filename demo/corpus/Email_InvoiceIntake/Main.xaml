@@ -1,0 +1,34 @@
+<Activity xmlns="http://schemas.microsoft.com/netfx/2009/xaml/activities"
+          xmlns:ui="http://schemas.uipath.com/workflow/activities"
+          xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <Sequence DisplayName="Email Invoice Intake - Main">
+    <ui:GetOutlookMailMessages MailFolder="Inbox\AP" OnlyUnreadMessages="True" DisplayName="Fetch New AP Emails" />
+    <ui:ForEach DisplayName="For Each Email">
+      <TryCatch DisplayName="Process Email">
+        <TryCatch.Try>
+          <Sequence>
+            <ui:SaveAttachments FolderPath="Data\Attachments" DisplayName="Save Attachments" />
+            <ui:DocumentUnderstandingScope DisplayName="Extract Invoice Fields">
+              <ui:DigitizeDocument DisplayName="Digitize" />
+              <ui:ClassifyDocumentScope DisplayName="Classify Invoice vs Other" />
+              <ui:DataExtractionScope DisplayName="Extract Vendor/Amount/Date">
+                <ui:MachineLearningExtractor Endpoint="invoices-v3" DisplayName="ML Extractor" />
+              </ui:DataExtractionScope>
+              <ui:PresentValidationStation DisplayName="Validation Station HITL" />
+            </ui:DocumentUnderstandingScope>
+            <ui:AddQueueItem QueueName="InvoicesToPost" DisplayName="Push to SAP Queue" />
+            <ui:MarkAsRead DisplayName="Mark Email Read" />
+          </Sequence>
+        </TryCatch.Try>
+        <TryCatch.Catches>
+          <Catch x:TypeArguments="ui:DocumentExtractionException" DisplayName="Handle extraction failure">
+            <ui:CreateFormTask FormTitle="Manual Invoice Review Required" DisplayName="Escalate to Human" />
+          </Catch>
+          <Catch x:TypeArguments="System.Exception" DisplayName="Handle generic">
+            <ui:LogMessage Message="Email processing failed" Level="Error" />
+          </Catch>
+        </TryCatch.Catches>
+      </TryCatch>
+    </ui:ForEach>
+  </Sequence>
+</Activity>

@@ -1,0 +1,138 @@
+{
+  "id": "Email_InvoiceIntake::Main.xaml",
+  "project_name": "Email_InvoiceIntake",
+  "project_root": "C:\\Users\\Sowmya.Rajan\\Documents\\FDE\\2026\\Claude_Proj\\Automation_Cortex\\demo\\corpus\\Email_InvoiceIntake",
+  "main_workflow": "Main.xaml",
+  "workflows": [
+    {
+      "file": "Main.xaml",
+      "display_name": "Main",
+      "activity_count": 21
+    }
+  ],
+  "capabilities": [
+    "document_extraction",
+    "document_understanding",
+    "hitl_validation",
+    "document_classification",
+    "queue_producer",
+    "email_ingest",
+    "hitl_form_task",
+    "multi_exception_handling"
+  ],
+  "applications": [
+    "Outlook"
+  ],
+  "selectors": [],
+  "invoked_workflows": [],
+  "exceptions_caught": [
+    "System.Exception",
+    "ui:DocumentExtractionException"
+  ],
+  "retry_blocks": 0,
+  "hitl_nodes": 2,
+  "raw_activities": {
+    "Activity": 1,
+    "Sequence": 2,
+    "GetOutlookMailMessages": 1,
+    "ForEach": 1,
+    "TryCatch": 1,
+    "TryCatch.Try": 1,
+    "SaveAttachments": 1,
+    "DocumentUnderstandingScope": 1,
+    "DigitizeDocument": 1,
+    "ClassifyDocumentScope": 1,
+    "DataExtractionScope": 1,
+    "MachineLearningExtractor": 1,
+    "PresentValidationStation": 1,
+    "AddQueueItem": 1,
+    "MarkAsRead": 1,
+    "TryCatch.Catches": 1,
+    "Catch": 2,
+    "CreateFormTask": 1,
+    "LogMessage": 1
+  },
+  "intent": "Extracts vendor, amount, and date from invoice attachments in Outlook emails for processing.",
+  "modality_signals": {
+    "has_ui_automation": false,
+    "has_ai_extraction": true,
+    "has_api_calls": false,
+    "has_hitl": true
+  },
+  "workflow_sequences": {
+    "Main.xaml": [
+      {
+        "activity": "GetOutlookMailMessages",
+        "display_name": "Fetch New AP Emails",
+        "selector": null,
+        "value": null
+      },
+      {
+        "activity": "SaveAttachments",
+        "display_name": "Save Attachments",
+        "selector": null,
+        "value": null
+      },
+      {
+        "activity": "DocumentUnderstandingScope",
+        "display_name": "Extract Invoice Fields",
+        "selector": null,
+        "value": null
+      },
+      {
+        "activity": "DigitizeDocument",
+        "display_name": "Digitize",
+        "selector": null,
+        "value": null
+      },
+      {
+        "activity": "ClassifyDocumentScope",
+        "display_name": "Classify Invoice vs Other",
+        "selector": null,
+        "value": null
+      },
+      {
+        "activity": "DataExtractionScope",
+        "display_name": "Extract Vendor/Amount/Date",
+        "selector": null,
+        "value": null
+      },
+      {
+        "activity": "MachineLearningExtractor",
+        "display_name": "ML Extractor",
+        "selector": null,
+        "value": null
+      },
+      {
+        "activity": "PresentValidationStation",
+        "display_name": "Validation Station HITL",
+        "selector": null,
+        "value": null
+      },
+      {
+        "activity": "AddQueueItem",
+        "display_name": "Push to SAP Queue",
+        "selector": null,
+        "value": "InvoicesToPost"
+      },
+      {
+        "activity": "MarkAsRead",
+        "display_name": "Mark Email Read",
+        "selector": null,
+        "value": null
+      },
+      {
+        "activity": "CreateFormTask",
+        "display_name": "Escalate to Human",
+        "selector": null,
+        "value": "Manual Invoice Review Required"
+      },
+      {
+        "activity": "LogMessage",
+        "display_name": null,
+        "selector": null,
+        "value": "Email processing failed"
+      }
+    ]
+  }
+}

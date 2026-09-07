@@ -1,0 +1,33 @@
+<Activity xmlns="http://schemas.microsoft.com/netfx/2009/xaml/activities"
+          xmlns:ui="http://schemas.uipath.com/workflow/activities"
+          xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <Sequence DisplayName="SAP Vendor Master - Bulk Update">
+    <ui:ExcelApplicationScope WorkbookPath="Input\VendorUpdates.xlsx" DisplayName="Open Vendor Excel">
+      <ui:ReadRange SheetName="Updates" DisplayName="Read Vendor Rows" />
+    </ui:ExcelApplicationScope>
+    <ui:InvokeWorkflowFile WorkflowFileName="Workflows\SAPLogin.xaml" DisplayName="Login to SAP" />
+    <ui:ForEachRow DisplayName="For Each Vendor Row">
+      <TryCatch DisplayName="Update Vendor with Recovery">
+        <TryCatch.Try>
+          <ui:RetryScope NumberOfRetries="2" RetryInterval="00:00:15" DisplayName="Retry XK02">
+            <Sequence>
+              <ui:TypeInto Selector="&lt;wnd app='saplogon.exe' cls='SAP_Frame' title='SAP Easy Access' /&gt;&lt;wnd cls='Edit' /&gt;" Text="/nXK02" DisplayName="Open XK02" />
+              <ui:TypeInto Selector="&lt;wnd app='saplogon.exe' cls='SAP_Frame' /&gt;&lt;wnd ctrlname='txtVendor' /&gt;" Text="[CurrentRow(&quot;VendorId&quot;)]" DisplayName="Enter Vendor ID" />
+              <ui:Click Selector="&lt;wnd app='saplogon.exe' cls='SAP_Frame' /&gt;&lt;btn name='Continue' /&gt;" DisplayName="Continue" />
+              <ui:TypeInto Selector="&lt;wnd app='saplogon.exe' cls='SAP_Frame' /&gt;&lt;wnd ctrlname='txtPaymentTerms' /&gt;" Text="[CurrentRow(&quot;PaymentTerms&quot;)]" DisplayName="Update Payment Terms" />
+              <ui:Click Selector="&lt;wnd app='saplogon.exe' cls='SAP_Frame' /&gt;&lt;btn name='Save' /&gt;" DisplayName="Save" />
+            </Sequence>
+          </ui:RetryScope>
+        </TryCatch.Try>
+        <TryCatch.Catches>
+          <Catch x:TypeArguments="ui:SelectorNotFoundException" DisplayName="Handle SAP timeout">
+            <ui:LogMessage Message="SAP selector missing for vendor row" Level="Error" />
+          </Catch>
+          <Catch x:TypeArguments="System.Exception" DisplayName="Handle unknown">
+            <ui:LogMessage Message="Row failed" Level="Error" />
+          </Catch>
+        </TryCatch.Catches>
+      </TryCatch>
+    </ui:ForEachRow>
+  </Sequence>
+</Activity>
